@@ -18,10 +18,12 @@ import { OutputPackDialog } from './OutputPackDialog';
 const DEFAULT: CompositionSettings = {
   direction: 'minimal',
   background: '#FAFAFA',
-  scale: 0.67,
+  scale: 0.72,
   radius: 18,
   shadow: 26,
   frame: 'browser',
+  sourceFit: 'contain',
+  sourceZoom: 1.35,
 };
 
 const backgrounds = ['#FAFAFA', '#FCD535', '#0B0E11', '#EAECEF', '#1E2329'];
@@ -318,6 +320,45 @@ export function StudioPage({ onGoHome }: Props) {
                     <p className="kr-body mt-1 mb-0 text-[12px] leading-[1.55] text-[#F2A5B2]">{captureError.message}</p>
                   </div>
                 )}
+              </div>
+            )}
+          </Section>
+
+          <Section title={t.studio.sourceFit} meta={t.studio.sourceFitLabels[settings.sourceFit]}>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label={t.studio.sourceFit}>
+              {(['contain', 'focus'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setSettings((previous) => ({ ...previous, sourceFit: mode }))}
+                  aria-pressed={settings.sourceFit === mode}
+                  className={`h-10 rounded-md border text-[13px] font-semibold ${
+                    settings.sourceFit === mode
+                      ? 'border-primary bg-[#3A3A1F] text-primary'
+                      : 'border-hairline-dark bg-canvas-dark text-muted-strong hover:border-muted'
+                  }`}
+                >
+                  {t.studio.sourceFitLabels[mode]}
+                </button>
+              ))}
+            </div>
+            {settings.sourceFit === 'focus' && (
+              <div className="mt-4 border-t border-hairline-dark pt-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <label htmlFor="source-focus-zoom" className="text-[13px] font-semibold leading-[1.55] text-white">{t.studio.sourceZoom}</label>
+                  <span className="font-number text-[12px] leading-[1.5] text-muted">{Math.round(settings.sourceZoom * 100)}%</span>
+                </div>
+                <input
+                  id="source-focus-zoom"
+                  aria-label={t.studio.sourceZoom}
+                  className="range-control w-full"
+                  type="range"
+                  min={115}
+                  max={160}
+                  step={5}
+                  value={Math.round(settings.sourceZoom * 100)}
+                  onChange={(event) => setSettings((previous) => ({ ...previous, sourceZoom: Number(event.target.value) / 100 }))}
+                />
+                <p className="kr-body mb-0 mt-2 text-[12px] leading-[1.55] text-muted">{t.studio.sourceFocusHelp}</p>
               </div>
             )}
           </Section>

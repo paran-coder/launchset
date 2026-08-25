@@ -1,5 +1,6 @@
 export type DirectionId = 'minimal' | 'editorial' | 'signal' | 'depth';
 export type FrameMode = 'browser' | 'none';
+export type SourceFitMode = 'contain' | 'focus';
 
 export type CompositionSettings = {
   direction: DirectionId;
@@ -8,6 +9,8 @@ export type CompositionSettings = {
   radius: number;
   shadow: number;
   frame: FrameMode;
+  sourceFit: SourceFitMode;
+  sourceZoom: number;
 };
 
 export type SourceImage = {

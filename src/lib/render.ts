@@ -14,10 +14,10 @@ export const outputPresets: OutputPreset[] = [
 ];
 
 export const directionPresets: Record<DirectionId, Partial<CompositionSettings>> = {
-  minimal: { background: '#FAFAFA', scale: 0.67, radius: 18, shadow: 26, frame: 'browser' },
-  editorial: { background: '#FCD535', scale: 0.62, radius: 10, shadow: 18, frame: 'none' },
-  signal: { background: '#0B0E11', scale: 0.66, radius: 12, shadow: 8, frame: 'browser' },
-  depth: { background: '#181A20', scale: 0.64, radius: 16, shadow: 42, frame: 'browser' },
+  minimal: { background: '#FAFAFA', scale: 0.72, radius: 18, shadow: 26, frame: 'browser' },
+  editorial: { background: '#FCD535', scale: 0.69, radius: 10, shadow: 18, frame: 'none' },
+  signal: { background: '#0B0E11', scale: 0.71, radius: 12, shadow: 8, frame: 'browser' },
+  depth: { background: '#181A20', scale: 0.70, radius: 16, shadow: 42, frame: 'browser' },
 };
 
 export const directionMeta: Array<{ id: DirectionId; name: string; description: string }> = [
@@ -95,8 +95,8 @@ function getLayout(width: number, height: number, direction: DirectionId): Layou
       subY: height * 0.255,
       sourceCX: width * 0.5,
       sourceCY: height * 0.67,
-      sourceMaxW: width * 0.84,
-      sourceMaxH: height * 0.43,
+      sourceMaxW: width * 0.86,
+      sourceMaxH: height * 0.45,
     };
   }
 
@@ -112,8 +112,8 @@ function getLayout(width: number, height: number, direction: DirectionId): Layou
       subY: height * 0.34,
       sourceCX: width * 0.53,
       sourceCY: height * 0.69,
-      sourceMaxW: width * 0.82,
-      sourceMaxH: height * 0.43,
+      sourceMaxW: width * 0.84,
+      sourceMaxH: height * 0.46,
     };
   }
 
@@ -126,10 +126,10 @@ function getLayout(width: number, height: number, direction: DirectionId): Layou
     headlineSize: (direction === 'editorial' ? 86 : 66) * unit,
     headlineGap: (direction === 'editorial' ? 82 : 70) * unit,
     subY: height * (direction === 'editorial' ? 0.447 : 0.406),
-    sourceCX: width * (direction === 'editorial' ? 0.72 : 0.70),
+    sourceCX: width * (direction === 'editorial' ? 0.72 : 0.715),
     sourceCY: height * 0.69,
-    sourceMaxW: width * 0.49,
-    sourceMaxH: height * 0.52,
+    sourceMaxW: width * 0.52,
+    sourceMaxH: height * 0.55,
   };
 }
 
@@ -279,7 +279,27 @@ function drawSource(
   ctx.save();
   roundRect(ctx, -w / 2, -h / 2, w, h, Math.max(0, (settings.radius - 3) * layout.unit));
   ctx.clip();
-  ctx.drawImage(source.element, -w / 2, -h / 2, w, h);
+
+  const focusZoom = settings.sourceFit === 'focus'
+    ? Math.max(1.08, Math.min(1.65, settings.sourceZoom))
+    : 1;
+  const sourceW = source.width / focusZoom;
+  const sourceH = source.height / focusZoom;
+  const sourceX = (source.width - sourceW) / 2;
+  const sourceY = (source.height - sourceH) / 2;
+
+  drawImageProgressive(
+    ctx,
+    source.element,
+    sourceX,
+    sourceY,
+    sourceW,
+    sourceH,
+    -w / 2,
+    -h / 2,
+    w,
+    h,
+  );
   ctx.restore();
 
   if (settings.frame === 'browser') {
@@ -300,6 +320,56 @@ function drawSource(
   ctx.restore();
 }
 
+function drawImageProgressive(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  sourceX: number,
+  sourceY: number,
+  sourceW: number,
+  sourceH: number,
+  destX: number,
+  destY: number,
+  destW: number,
+  destH: number,
+) {
+  const transform = ctx.getTransform();
+  const scaleX = Math.hypot(transform.a, transform.b);
+  const scaleY = Math.hypot(transform.c, transform.d);
+  const targetPixelW = Math.max(1, Math.round(Math.abs(destW * scaleX)));
+  const targetPixelH = Math.max(1, Math.round(Math.abs(destH * scaleY)));
+
+  let current: CanvasImageSource = image;
+  let sx = sourceX;
+  let sy = sourceY;
+  let sw = sourceW;
+  let sh = sourceH;
+
+  while (sw > targetPixelW * 2.15 || sh > targetPixelH * 2.15) {
+    const nextW = Math.max(targetPixelW, Math.round(sw / 2));
+    const nextH = Math.max(targetPixelH, Math.round(sh / 2));
+    const step = document.createElement('canvas');
+    step.width = nextW;
+    step.height = nextH;
+
+    const stepCtx = step.getContext('2d');
+    if (!stepCtx) break;
+    stepCtx.imageSmoothingEnabled = true;
+    stepCtx.imageSmoothingQuality = 'high';
+    stepCtx.clearRect(0, 0, nextW, nextH);
+    stepCtx.drawImage(current, sx, sy, sw, sh, 0, 0, nextW, nextH);
+
+    current = step;
+    sx = 0;
+    sy = 0;
+    sw = nextW;
+    sh = nextH;
+  }
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(current, sx, sy, sw, sh, destX, destY, destW, destH);
+}
+
 function drawPlaceholder(
   ctx: CanvasRenderingContext2D,
   settings: CompositionSettings,
@@ -307,7 +377,7 @@ function drawPlaceholder(
   height: number,
   layout: Layout,
 ) {
-  const w = layout.mode === 'wide' ? width * 0.49 : width * 0.80;
+  const w = layout.mode === 'wide' ? width * 0.52 : width * 0.82;
   const h = Math.min(layout.sourceMaxH * 0.78, w * 0.52);
   const x = layout.sourceCX - w / 2;
   const y = layout.sourceCY - h / 2;

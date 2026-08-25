@@ -1,38 +1,46 @@
-# Launchset v1.4.4 — Context Notes
+# Launchset v1.4.5 — Context Notes
 
 ## 목적
-Production에서 URL Capture 결과가 파일 업로드 대비 뿌옇게 보이는 문제를 수정하는 품질 패치입니다.
+v1.4.4에서 2× HiDPI Capture를 적용했지만 제품 화면이 Hero 내부에서 크게 축소되면서 여전히 작은 텍스트와 thin UI line이 부드럽게 보이는 문제를 개선하는 품질 패치입니다.
 
-## 확인된 원인
-- URL Capture viewport는 Desktop 1440×900 / Mobile 390×844
-- Browserless 캡처가 1× pixel density로 생성됨
-- Launchset Hero 안에서 다시 축소됨
-- Studio Preview Canvas도 CSS 크기로 축소되어 고해상도 디스플레이에서 추가적인 softening이 보일 수 있음
-- 작은 웹사이트 텍스트와 thin UI line에서 차이가 가장 크게 보임
+## 확인된 원인 우선순위
+1. 제품 화면을 Hero 내부에서 과도하게 축소하는 구조
+2. 큰 source 이미지를 최종 크기로 한 번에 축소하는 단일 단계 다운샘플링
+3. Browserless → Vercel 전송을 항상 WebP로 처리하는 손실 압축
+4. 원본 캡처 픽셀 밀도
 
 ## 승인된 변경 범위
-1. URL Capture를 기본 2× HiDPI로 변경
-   - Desktop CSS viewport 1440×900 → PNG 2880×1800
-   - Mobile CSS viewport 390×844 → PNG 780×1688
-2. Canvas image smoothing을 명시적으로 high quality로 설정
-3. Studio Preview를 devicePixelRatio-aware backing store로 개선
-4. Export 논리 해상도는 기존 1440×900 등 output spec을 유지
-5. 동일 Sixshop URL로 전/후 선명도 비교가 가능하도록 QA 기준 문서화
-6. Visual Pack / 개별 PNG / ZIP 회귀 테스트
-7. 이 품질 Gate 통과 후 v1.5.0 Brand System으로 진행
+1. PNG-first URL Capture
+   - 2× PNG를 우선 요청
+   - Vercel response payload 안전 한도 이내면 PNG 그대로 사용
+   - 초과 시 고품질 WebP fallback
+2. Progressive downsampling
+   - 큰 source를 1/2 단계로 축소한 뒤 최종 크기로 렌더링
+   - 작은 텍스트와 thin line의 aliasing/softening 완화
+3. Source Focus
+   - `전체 보기` / `집중 보기`
+   - 집중 보기에서 source 내부 zoom 조절
+   - focus position은 중앙을 기본으로 하고 향후 위치 이동 확장 가능
+4. 4개 Direction의 제품 화면 비중 재조정
+   - Minimal 포함 wide layout에서 제품 frame 존재감 상향
+   - 카피와 충돌하지 않는 범위에서 frame width 확대
+5. 동일 Sixshop URL로 v1.4.4와 v1.4.5 전후 비교
+6. Hero PNG / Visual Pack / ZIP 회귀 테스트
+7. 품질 Gate 통과 후 v1.5.0 Brand System으로 진행
 
 ## 비범위
-- Brand System
+- Brand Kit
 - Motion
-- 신규 preset
-- Export 규격 변경
-- 사용자 계정/저장 기능
+- Timeline
+- 계정/저장
+- source focus 위치 드래그
+- 신규 output preset
 
 ## 프로젝트 규칙
-- 단일 프로젝트 루트: `Launchset-v1.4.4`
+- 단일 프로젝트 루트: `Launchset-v1.4.5`
 - GitHub 배포 산출물: `release/github/`
-- GitHub ZIP: `release/Launchset-v1.4.4-github.zip`
-- 전체 ZIP: `release/Launchset-v1.4.4-full.zip`
+- GitHub ZIP: `release/Launchset-v1.4.5-github.zip`
+- 전체 ZIP: `release/Launchset-v1.4.5-full.zip`
 
 ## 기술 기준
 - Node.js 24.x
@@ -44,16 +52,9 @@ Production에서 URL Capture 결과가 파일 업로드 대비 뿌옇게 보이�
 - GitHub → Vercel
 
 ## 완료 조건
-- Production에서 Sixshop URL이 Desktop/Mobile 모두 성공
-- Preview가 이전보다 선명함
-- Export output dimension 유지
-- PNG/ZIP 회귀 없음
+- Sixshop Desktop/Mobile Capture 성공
+- `전체 보기` / `집중 보기` 정상
+- 집중 보기 zoom이 실제 Export에도 동일 반영
+- v1.4.4 대비 작은 텍스트/얇은 선 선명도 개선
+- Hero PNG 및 Visual Pack/ZIP 회귀 없음
 - 이후에만 v1.5.0 시작
-
-
-## 구현 중 추가 확인
-- Vercel Function 응답 payload 한도 때문에 2× PNG를 그대로 프록시하지 않습니다.
-- Browserless → Vercel → Browser 구간은 WebP 92 품질을 기본으로 사용합니다.
-- 4,000,000 bytes를 넘으면 WebP 82로 한 번 재시도합니다.
-- 재시도 후에도 한도를 넘으면 사용자에게 고해상도 캡처 용량 오류를 반환합니다.
-- 최종 Launchset Visual Pack Export는 기존대로 PNG입니다.

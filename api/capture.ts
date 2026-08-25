@@ -31,7 +31,7 @@ const VIEWPORTS: Record<CaptureViewport, { width: number; height: number; mobile
 
 const CAPTURE_SCALE = 2;
 const MAX_RESPONSE_BYTES = 4_000_000;
-const MAX_UPSTREAM_BYTES = 16 * 1024 * 1024;
+const MAX_UPSTREAM_BYTES = 24 * 1024 * 1024;
 const PRIMARY_WEBP_QUALITY = 92;
 const FALLBACK_WEBP_QUALITY = 82;
 const UPSTREAM_TIMEOUT_MS = 26_000;
@@ -178,7 +178,14 @@ function browserlessEndpoint(token: string) {
   return `${baseUrl.toString().replace(/\/$/, '')}/screenshot?${params.toString()}`;
 }
 
-function browserlessRequestBody(targetUrl: string, viewport: CaptureViewport, quality: number) {
+type CaptureTransport = 'png' | 'webp';
+
+function browserlessRequestBody(
+  targetUrl: string,
+  viewport: CaptureViewport,
+  format: CaptureTransport,
+  quality?: number,
+) {
   const spec = VIEWPORTS[viewport];
   return {
     url: targetUrl,
@@ -196,8 +203,8 @@ function browserlessRequestBody(targetUrl: string, viewport: CaptureViewport, qu
     waitForTimeout: 800,
     bestAttempt: true,
     options: {
-      type: 'webp',
-      quality,
+      type: format,
+      ...(format === 'webp' && typeof quality === 'number' ? { quality } : {}),
       fullPage: false,
       captureBeyondViewport: false,
     },
@@ -251,14 +258,22 @@ function mapTargetFailure(targetStatus: number) {
 }
 
 type ScreenshotResult =
-  | { ok: true; buffer: ArrayBuffer; contentType: string; targetStatus: number; quality: number }
+  | {
+      ok: true;
+      buffer: ArrayBuffer;
+      contentType: string;
+      targetStatus: number;
+      format: CaptureTransport;
+      quality?: number;
+    }
   | { ok: false; response: Response };
 
 async function requestScreenshot(
   endpoint: string,
   targetUrl: string,
   viewport: CaptureViewport,
-  quality: number,
+  format: CaptureTransport,
+  quality?: number,
 ): Promise<ScreenshotResult> {
   const upstream = await fetch(endpoint, {
     method: 'POST',
@@ -266,7 +281,7 @@ async function requestScreenshot(
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
     },
-    body: JSON.stringify(browserlessRequestBody(targetUrl, viewport, quality)),
+    body: JSON.stringify(browserlessRequestBody(targetUrl, viewport, format, quality)),
     signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
   });
 
@@ -317,7 +332,7 @@ async function requestScreenshot(
     };
   }
 
-  return { ok: true, buffer, contentType, targetStatus, quality };
+  return { ok: true, buffer, contentType, targetStatus, format, quality };
 }
 
 export default {
@@ -363,11 +378,16 @@ export default {
     }
 
     try {
-      let capture = await requestScreenshot(endpoint, targetUrl, viewport, PRIMARY_WEBP_QUALITY);
+      let capture = await requestScreenshot(endpoint, targetUrl, viewport, 'png');
       if (!capture.ok) return capture.response;
 
       if (capture.buffer.byteLength > MAX_RESPONSE_BYTES) {
-        capture = await requestScreenshot(endpoint, targetUrl, viewport, FALLBACK_WEBP_QUALITY);
+        capture = await requestScreenshot(endpoint, targetUrl, viewport, 'webp', PRIMARY_WEBP_QUALITY);
+        if (!capture.ok) return capture.response;
+      }
+
+      if (capture.buffer.byteLength > MAX_RESPONSE_BYTES) {
+        capture = await requestScreenshot(endpoint, targetUrl, viewport, 'webp', FALLBACK_WEBP_QUALITY);
         if (!capture.ok) return capture.response;
       }
 
@@ -383,7 +403,7 @@ export default {
       return new Response(capture.buffer, {
         status: 200,
         headers: {
-          'Content-Type': capture.contentType.toLowerCase().includes('image/webp') ? 'image/webp' : capture.contentType,
+          'Content-Type': capture.contentType,
           'Content-Length': String(capture.buffer.byteLength),
           'Cache-Control': 'no-store',
           'X-Content-Type-Options': 'nosniff',
@@ -391,7 +411,8 @@ export default {
           'X-Launchset-Capture-Viewport-Width': String(spec.width),
           'X-Launchset-Capture-Viewport-Height': String(spec.height),
           'X-Launchset-Capture-Scale': String(CAPTURE_SCALE),
-          'X-Launchset-Capture-Quality': String(capture.quality),
+          'X-Launchset-Capture-Transport': capture.format,
+          ...(typeof capture.quality === 'number' ? { 'X-Launchset-Capture-Quality': String(capture.quality) } : {}),
           'X-Launchset-Capture-Provider': 'browserless-screenshot',
           ...(capture.targetStatus > 0 ? { 'X-Launchset-Target-Status': String(capture.targetStatus) } : {}),
         },

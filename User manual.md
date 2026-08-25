@@ -1,13 +1,22 @@
-# Launchset v1.4.4 — User Manual
+# Launchset v1.4.5 — User Manual
 
 ## URL Capture
 1. Studio에서 `URL`을 선택합니다.
 2. 공개 URL을 입력합니다.
-3. `데스크톱` 또는 `모바일`을 선택합니다.
+3. 데스크톱 또는 모바일을 선택합니다.
 4. `URL 캡처`를 누릅니다.
-5. v1.4.4부터는 내부적으로 2× 고해상도 source가 생성됩니다.
-6. 서버 전송은 고품질 WebP로 최적화되며 최종 다운로드 포맷은 기존처럼 PNG입니다.
-7. 사용자가 보는 viewport 기준은 기존과 동일합니다.
+5. Launchset은 2× source를 우선 PNG로 받아오고, 너무 큰 경우에만 WebP로 최적화합니다.
+
+## 화면 맞춤
+### 전체 보기
+웹사이트 화면 전체를 제품 frame 안에 맞춥니다.
+
+### 집중 보기
+제품 frame은 유지하면서 source 내부를 확대해 중요한 UI를 더 크게 보여줍니다.
+
+## 집중 보기 확대
+집중 보기에서 확대 조절을 사용해 source 내부 크기를 조정할 수 있습니다.
+기본 확대값과 허용 범위는 결과물 가독성과 crop 안정성을 기준으로 제한됩니다.
 
 ## 결과물
 - Website Hero: 1440×900
@@ -16,19 +25,16 @@
 - Social Square: 1080×1080
 - Story: 1080×1920
 
-v1.4.4는 source 품질과 preview 품질을 개선하지만 위 Export 규격 자체는 변경하지 않습니다.
-
-## 선명도 확인 방법
-동일한 URL을 캡처한 뒤 작은 본문 글자, 메뉴, 얇은 border, 브라우저 frame 경계를 비교합니다.
+v1.4.5는 source 품질과 composition 가독성을 개선하지만 output 규격 자체는 변경하지 않습니다.
 
 ## Production 테스트 순서
-1. example.com Desktop
-2. example.com Mobile
-3. wavesstay.sixshop.site Desktop
-4. wavesstay.sixshop.site Mobile
+1. Sixshop Desktop
+2. Sixshop Mobile
+3. 전체 보기
+4. 집중 보기 + zoom
 5. Hero PNG
 6. Visual Pack
 7. ZIP
 
 ## Version
-`1.4.4`
+`1.4.5`
