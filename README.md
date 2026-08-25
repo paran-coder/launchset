@@ -1,4 +1,4 @@
-# Launchset Studio v1.3.0
+# Launchset Studio v1.3.1
 
 React + TypeScript + Vite + Tailwind CSS v4 implementation of Launchset's local-first Visual Pack MVP.
 

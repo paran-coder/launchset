@@ -3,8 +3,8 @@ type ZipEntry = { name: string; blob: Blob };
 const encoder = new TextEncoder();
 
 export async function createZipBlob(entries: ZipEntry[], onProgress?: (percent: number) => void): Promise<Blob> {
-  const locals: Uint8Array[] = [];
-  const centrals: Uint8Array[] = [];
+  const locals: Uint8Array<ArrayBuffer>[] = [];
+  const centrals: Uint8Array<ArrayBuffer>[] = [];
   let offset = 0;
   const now = new Date();
   const { time, date } = toDosTime(now);

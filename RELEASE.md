@@ -1,4 +1,4 @@
-# Launchset v1.3.0
+# Launchset v1.3.1
 
 Core release: **one product screenshot → five responsive launch artboards → selected PNGs or one ZIP**.
 
