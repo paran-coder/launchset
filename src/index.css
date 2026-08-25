@@ -4,6 +4,7 @@
   --color-primary: #fcd535;
   --color-primary-active: #f0b90b;
   --color-primary-disabled: #3a3a1f;
+  --color-danger: #f95a70;
   --color-ink: #181a20;
   --color-body: #eaecef;
   --color-muted: #84909f;
@@ -39,7 +40,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 
 .font-number { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 .section-kicker { margin: 0; color: #fcd535; font-size: 12px; line-height: 18px; font-weight: 600; letter-spacing: .02em; }
-.section-heading { margin: 8px 0 0; color: #fff; font-size: clamp(32px,4vw,48px); line-height: 1.22; font-weight: 700; letter-spacing: -.012em; }
+.section-heading { margin: 8px 0 0; color: #fff; font-size: clamp(32px,4vw,48px); line-height: 1.24; font-weight: 700; letter-spacing: -.01em; text-wrap: balance; }
 .section-body { color: #929aa5; font-size: 15px; line-height: 1.72; }
 
 .primary-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid #fcd535; border-radius:6px; background:#fcd535; color:#181a20; font-size:14px; line-height:1.2; font-weight:600; white-space:nowrap; transition:background-color 160ms ease,border-color 160ms ease,transform 160ms ease; }
@@ -72,8 +73,14 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 }
 
 .pack-dialog { box-shadow: 0 20px 56px rgba(0,0,0,.24); }
-.kr-heading { word-break: keep-all; overflow-wrap: break-word; }
+.kr-heading { word-break: keep-all; overflow-wrap: break-word; text-wrap: balance; }
+.balanced-heading { text-wrap: balance; }
+.kr-heading > .block { text-wrap: balance; }
 .kr-body { word-break: keep-all; overflow-wrap: break-word; }
 
 button:disabled { cursor: not-allowed; }
 .secondary-button:disabled { opacity: .45; cursor: not-allowed; }
+
+@media (max-width: 639px) {
+  .section-heading { font-size: 32px; line-height: 1.28; letter-spacing: -.008em; }
+}

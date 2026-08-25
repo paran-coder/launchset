@@ -8,3 +8,5 @@ export function ExportIcon(p:SVGProps<SVGSVGElement>){return <svg {...base} {...
 export function CheckIcon(p:SVGProps<SVGSVGElement>){return <svg {...base} {...p}><path d="m5 12 4 4L19 6"/></svg>}
 export function ArrowIcon(p:SVGProps<SVGSVGElement>){return <svg {...base} {...p}><path d="M5 12h14m-5-5 5 5-5 5"/></svg>}
 export function ShieldIcon(p:SVGProps<SVGSVGElement>){return <svg {...base} {...p}><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>}
+
+export function GlobeIcon(p:SVGProps<SVGSVGElement>){return <svg {...base} {...p}><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9S14.4 18.5 12 21c-2.4-2.5-3.6-5.5-3.6-9S9.6 5.5 12 3Z"/></svg>}

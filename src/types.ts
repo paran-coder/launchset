@@ -12,6 +12,8 @@ export type CompositionSettings = {
 
 export type SourceImage = {
   name: string;
+  origin: 'file' | 'url';
+  sourceUrl?: string;
   url: string;
   element: HTMLImageElement;
   width: number;

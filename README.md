@@ -1,28 +1,51 @@
-# Launchset v1.3.3
+# Launchset v1.4.0
 
-**하나의 제품으로, 출시 비주얼을 한 번에.**
+Launchset은 제품 URL 또는 스크린샷 하나에서 출시·마케팅용 비주얼 팩을 만드는 Product Visual Studio입니다.
 
-Launchset은 제품 스크린샷 하나에서 웹사이트 Hero, Open Graph, Product Hunt, 소셜 정사각형, Story 등 여러 출시용 비주얼을 생성하는 웹 기반 Product Visual Studio입니다.
+## v1.4.0 핵심
+스크린샷 파일을 직접 준비하지 않아도 URL을 입력해 Desktop 또는 Mobile 화면을 캡처하고, 기존 Visual Pack 파이프라인의 소스로 바로 사용할 수 있습니다.
 
-## 이번 버전의 목적
-v1.3.3은 기능 추가보다 **한국어 현지화와 배포 안정성**에 집중하는 패치 버전입니다.
+## Source modes
+- 파일 업로드 — 브라우저 로컬 처리
+- URL 캡처 — Vercel Function + Browserless 원격 브라우저 처리
 
-- 한국어 기본 UI
-- 한국어에 맞춘 타이포그래피/줄바꿈/밀도 보정
-- 사용자 노출 문자열 중앙화
-- 향후 ko/en 언어 전환을 추가하기 쉬운 구조
-- GitHub → Vercel 배포 구조 유지
-- v1.3.2의 Multi-Artboard / Visual Pack / ZIP Export 기능 유지
+## Visual Pack
+- Website Hero — 1440 × 900
+- Open Graph — 1200 × 630
+- Product Hunt — 1270 × 760
+- Social Square — 1080 × 1080
+- Story — 1080 × 1920
 
-## 기술 스택
-- React
-- TypeScript
-- Vite
-- Tailwind CSS 계열 유틸리티 기반 스타일링
-- Canvas 2D
-- Client-side PNG/ZIP export
+## Stack
+- React 19
+- TypeScript 5.8
+- Tailwind CSS v4
+- Vite 7
+- Vercel Functions
+- Browserless Function API
 
-## 배포
-배포 목표는 GitHub 저장소를 Vercel에 연결하는 구조입니다.
+## Required environment variable
+```text
+BROWSERLESS_API_TOKEN
+```
 
-최종 GitHub 업로드용 패키지는 `release/Launchset-v1.3.3-github.zip`으로 생성합니다.
+Optional:
+```text
+BROWSERLESS_API_URL=https://production-sfo.browserless.io
+```
+
+The token is server-only. Never prefix it with `VITE_`.
+
+## Commands
+```bash
+npm install
+npm run typecheck
+npm run build
+npm run dev
+```
+
+## Deployment
+GitHub-ready files are generated under `release/github/`. Import that repository into Vercel, add the capture environment variable, then use the first Vercel Preview as the production build and live-capture gate.
+
+## Product roadmap discipline
+v1.4.0 adds URL Capture only. Brand System, assisted art direction, and Motion remain later roadmap stages in the previously approved order.

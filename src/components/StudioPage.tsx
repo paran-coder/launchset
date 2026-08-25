@@ -11,7 +11,7 @@ import {
 import { t } from '../i18n';
 import { directionMeta, directionPresets, exportPng, renderComposition } from '../lib/render';
 import type { CompositionSettings, DirectionId, SourceImage } from '../types';
-import { CheckIcon, ExportIcon, ImageIcon, SparkIcon, TuneIcon, UploadIcon } from './Icons';
+import { CheckIcon, ExportIcon, GlobeIcon, ImageIcon, SparkIcon, TuneIcon, UploadIcon } from './Icons';
 import { Mark } from './Mark';
 import { OutputPackDialog } from './OutputPackDialog';
 
@@ -31,7 +31,12 @@ type Props = { onGoHome: () => void };
 export function StudioPage({ onGoHome }: Props) {
   const [settings, setSettings] = useState(DEFAULT);
   const [source, setSource] = useState<SourceImage | null>(null);
+  const [sourceMode, setSourceMode] = useState<'file' | 'url'>('file');
   const [error, setError] = useState('');
+  const [captureUrl, setCaptureUrl] = useState('');
+  const [captureViewport, setCaptureViewport] = useState<'desktop' | 'mobile'>('desktop');
+  const [captureState, setCaptureState] = useState<'idle' | 'capturing'>('idle');
+  const [captureError, setCaptureError] = useState('');
   const [isDragging, setDragging] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [packOpen, setPackOpen] = useState(false);
@@ -45,9 +50,35 @@ export function StudioPage({ onGoHome }: Props) {
   useEffect(() => rerender(), [rerender]);
   useEffect(() => () => { if (source) URL.revokeObjectURL(source.url); }, [source]);
 
-  const loadFile = useCallback((file?: File) => {
+  const setSourceFromBlob = useCallback((blob: Blob, name: string, origin: 'file' | 'url', sourceUrl?: string) => new Promise<void>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => {
+      setSource((previous) => {
+        if (previous) URL.revokeObjectURL(previous.url);
+        return {
+          name,
+          origin,
+          sourceUrl,
+          url: objectUrl,
+          element: image,
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+        };
+      });
+      resolve();
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error(t.studio.imageReadFailed));
+    };
+    image.src = objectUrl;
+  }), []);
+
+  const loadFile = useCallback(async (file?: File) => {
     if (!file) return;
     setError('');
+    setCaptureError('');
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       setError(t.studio.invalidFile);
       return;
@@ -56,27 +87,46 @@ export function StudioPage({ onGoHome }: Props) {
       setError(t.studio.fileTooLarge);
       return;
     }
+    try {
+      await setSourceFromBlob(file, file.name, 'file');
+      setSourceMode('file');
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : t.studio.imageReadFailed);
+    }
+  }, [setSourceFromBlob]);
 
-    const url = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => {
-      setSource((previous) => {
-        if (previous) URL.revokeObjectURL(previous.url);
-        return {
-          name: file.name,
-          url,
-          element: image,
-          width: image.naturalWidth,
-          height: image.naturalHeight,
-        };
+  const captureFromUrl = useCallback(async () => {
+    const value = captureUrl.trim();
+    if (!value) {
+      setCaptureError(t.studio.captureEmptyUrl);
+      return;
+    }
+    setError('');
+    setCaptureError('');
+    setCaptureState('capturing');
+    try {
+      const response = await fetch('/api/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: value, viewport: captureViewport }),
       });
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-      setError(t.studio.imageReadFailed);
-    };
-    image.src = url;
-  }, []);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(payload.error || t.studio.captureFailed);
+      }
+      const blob = await response.blob();
+      if (!blob.type.startsWith('image/')) throw new Error(t.studio.captureInvalidImage);
+      const normalizedUrl = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(value) ? value : `https://${value}`;
+      const host = new URL(normalizedUrl).hostname.replace(/^www\./, '') || 'website';
+      await setSourceFromBlob(blob, `${host}-${captureViewport}.png`, 'url', normalizedUrl);
+      setCaptureUrl(normalizedUrl);
+      setSourceMode('url');
+    } catch (captureFailure) {
+      setCaptureError(captureFailure instanceof Error ? captureFailure.message : t.studio.captureFailed);
+    } finally {
+      setCaptureState('idle');
+    }
+  }, [captureUrl, captureViewport, setSourceFromBlob]);
 
   const applyDirection = (id: DirectionId) => setSettings((previous) => ({ ...previous, ...directionPresets[id], direction: id }));
   const doSingleExport = useCallback(async () => {
@@ -99,7 +149,8 @@ export function StudioPage({ onGoHome }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [packOpen]);
 
-  const sourceMeta = useMemo(() => source ? `${source.width} × ${source.height}` : t.studio.noSource, [source]);
+  const sourceMeta = useMemo(() => source ? `${source.width} × ${source.height}${source.origin === 'url' ? ' · URL' : ''}` : t.studio.noSource, [source]);
+  const sourceStatus = !source ? t.studio.outputLocal : source.origin === 'url' ? t.studio.capturedServerSide : t.studio.renderedLocally;
   const currentDirection = directionMeta.find((item) => item.id === settings.direction)?.name ?? settings.direction;
 
   return (
@@ -113,7 +164,7 @@ export function StudioPage({ onGoHome }: Props) {
             <span className="text-[13px] font-medium leading-[1.55] text-muted-strong">{t.studio.untitled}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-2 text-[12px] leading-[1.5] text-muted md:flex"><i className="size-1.5 rounded-full bg-primary" />{t.studio.renderedLocally}</span>
+            <span className="hidden items-center gap-2 text-[12px] leading-[1.5] text-muted md:flex"><i className="size-1.5 rounded-full bg-primary" />{sourceStatus}</span>
             <button className="secondary-button hidden h-10 px-4 sm:inline-flex" onClick={() => setAdvanced((value) => !value)}><TuneIcon className="size-4" />{t.studio.advanced}</button>
             <button className="secondary-button hidden h-10 px-4 xl:inline-flex" onClick={doSingleExport} disabled={!source}><ExportIcon className="size-4" />{t.studio.heroPng}</button>
             <button className="primary-button h-10 px-5" onClick={() => setPackOpen(true)}><ExportIcon className="size-4" />{t.studio.visualPack}</button>
@@ -136,12 +187,74 @@ export function StudioPage({ onGoHome }: Props) {
           </div>
 
           <Section title={t.studio.source} meta={sourceMeta}>
-            <input ref={fileInput} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => loadFile(event.target.files?.[0])} />
-            <button onClick={() => fileInput.current?.click()} className="flex w-full items-center gap-3 rounded-lg border border-hairline-dark bg-canvas-dark p-3 text-left hover:border-muted">
-              <span className="grid size-10 shrink-0 place-items-center rounded-md bg-surface-elevated text-primary"><UploadIcon /></span>
-              <span className="min-w-0"><b className="block truncate text-[13px] font-semibold leading-[1.55] text-white">{source?.name || t.studio.chooseScreenshot}</b><small className="block text-[12px] leading-[1.5] text-muted">PNG · JPEG · WebP</small></span>
-            </button>
-            {error && <p role="alert" className="kr-body mt-2 text-[12px] leading-[1.55] text-[#F6465D]">{error}</p>}
+            <input ref={fileInput} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void loadFile(event.target.files?.[0])} />
+            <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg border border-hairline-dark bg-canvas-dark p-1" role="tablist" aria-label={t.studio.source}>
+              {(['file', 'url'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  role="tab"
+                  aria-selected={sourceMode === mode}
+                  onClick={() => { setSourceMode(mode); setError(''); setCaptureError(''); }}
+                  className={`h-9 rounded-md text-[13px] font-semibold ${sourceMode === mode ? 'bg-surface-elevated text-white' : 'text-muted hover:text-body'}`}
+                >
+                  {t.studio.sourceModes[mode]}
+                </button>
+              ))}
+            </div>
+
+            {sourceMode === 'file' ? (
+              <>
+                <button onClick={() => fileInput.current?.click()} className="flex w-full items-center gap-3 rounded-lg border border-hairline-dark bg-canvas-dark p-3 text-left hover:border-muted">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-md bg-surface-elevated text-primary"><UploadIcon /></span>
+                  <span className="min-w-0"><b className="block truncate text-[13px] font-semibold leading-[1.55] text-white">{source?.origin === 'file' ? source.name : t.studio.chooseScreenshot}</b><small className="block text-[12px] leading-[1.5] text-muted">PNG · JPEG · WebP</small></span>
+                </button>
+                {error && <p role="alert" className="kr-body mt-2 text-[12px] leading-[1.55] text-danger">{error}</p>}
+              </>
+            ) : (
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="sr-only">{t.studio.urlLabel}</span>
+                  <div className="flex h-11 items-center gap-2 rounded-md border border-hairline-dark bg-canvas-dark px-3 focus-within:border-primary">
+                    <GlobeIcon className="size-4 shrink-0 text-muted" />
+                    <input
+                      type="url"
+                      inputMode="url"
+                      autoComplete="url"
+                      value={captureUrl}
+                      onChange={(event) => setCaptureUrl(event.target.value)}
+                      onKeyDown={(event) => { if (event.key === 'Enter' && captureState !== 'capturing') void captureFromUrl(); }}
+                      placeholder={t.studio.urlPlaceholder}
+                      className="min-w-0 flex-1 border-0 bg-transparent text-[13px] leading-[1.55] text-white outline-none placeholder:text-muted"
+                    />
+                  </div>
+                </label>
+                <div>
+                  <div className="mb-2 text-[12px] font-medium leading-[1.5] text-muted-strong">{t.studio.captureViewport}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['desktop', 'mobile'] as const).map((viewport) => (
+                      <button
+                        key={viewport}
+                        onClick={() => setCaptureViewport(viewport)}
+                        className={`h-9 rounded-md border text-[12px] font-semibold ${captureViewport === viewport ? 'border-primary bg-[#3A3A1F] text-primary' : 'border-hairline-dark bg-canvas-dark text-muted-strong hover:border-muted'}`}
+                      >
+                        {t.studio.captureViewports[viewport]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button className="primary-button h-10 w-full disabled:cursor-wait disabled:border-primary-disabled disabled:bg-primary-disabled disabled:text-muted" onClick={() => void captureFromUrl()} disabled={captureState === 'capturing'} aria-busy={captureState === 'capturing'}>
+                  <GlobeIcon className="size-4" />{captureState === 'capturing' ? t.studio.capturingUrl : t.studio.urlCapture}
+                </button>
+                <p className="kr-body m-0 text-[12px] leading-[1.55] text-muted">{t.studio.captureServerNote}</p>
+                {source?.origin === 'url' && source.sourceUrl && (
+                  <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-md border border-[#3F5B2A] bg-[#18220F] px-3 py-2 text-[12px] leading-[1.5] text-[#B7D69B]">
+                    <CheckIcon className="size-3.5 shrink-0" />
+                    <span className="truncate">{source.sourceUrl}</span>
+                  </div>
+                )}
+                {captureError && <p role="alert" className="kr-body m-0 text-[12px] leading-[1.55] text-danger">{captureError}</p>}
+              </div>
+            )}
           </Section>
 
           <Section title={t.studio.direction} meta={currentDirection}>
@@ -173,7 +286,7 @@ export function StudioPage({ onGoHome }: Props) {
           onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
           onDragOver={(event) => event.preventDefault()}
           onDragLeave={() => setDragging(false)}
-          onDrop={(event) => { event.preventDefault(); setDragging(false); loadFile(event.dataTransfer.files?.[0]); }}
+          onDrop={(event) => { event.preventDefault(); setDragging(false); setSourceMode('file'); void loadFile(event.dataTransfer.files?.[0]); }}
         >
           <div className="absolute left-4 right-4 top-4 z-10 flex items-center justify-between">
             <span className="rounded-md border border-hairline-dark bg-surface-card px-3 py-2 text-[12px] font-medium leading-[1.5] text-muted-strong">{t.studio.websiteHero} <span className="ml-2 text-muted">1440 × 900</span></span>
@@ -184,7 +297,7 @@ export function StudioPage({ onGoHome }: Props) {
           </div>
           {!source && <button onClick={() => fileInput.current?.click()} className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2 rounded-md border border-hairline-dark bg-surface-card px-4 py-2.5 text-[13px] font-semibold leading-[1.5] text-white hover:border-primary"><UploadIcon className="mr-2 inline size-4 text-primary" />{t.studio.replacePreview}</button>}
           {isDragging && <div className="absolute inset-4 z-40 grid place-items-center rounded-xl border-2 border-dashed border-primary bg-canvas-dark/90"><div className="text-center"><UploadIcon className="mx-auto size-8 text-primary" /><b className="kr-heading mt-3 block text-[16px] leading-[1.55] text-white">{t.studio.dropHere}</b><span className="kr-body mt-1 block text-[13px] leading-[1.6] text-muted-strong">{t.studio.staysLocal}</span></div></div>}
-          {advanced && <AdvancedPanel settings={settings} setSettings={setSettings} onClose={() => setAdvanced(false)} />}
+          {advanced && <AdvancedPanel settings={settings} setSettings={setSettings} source={source} onClose={() => setAdvanced(false)} />}
         </main>
       </div>
 
@@ -227,9 +340,9 @@ function Range({ label, value, min, max, onChange }: { label: string; value: num
   return <section className="border-t border-hairline-dark py-5"><div className="mb-3 flex justify-between"><label className="text-[14px] font-semibold leading-[1.55] text-white">{label}</label><span className="font-number text-[12px] leading-[1.5] text-muted">{value}</span></div><input aria-label={label} className="range-control w-full" type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></section>;
 }
 
-function AdvancedPanel({ settings, setSettings, onClose }: { settings: CompositionSettings; setSettings: Dispatch<SetStateAction<CompositionSettings>>; onClose: () => void }) {
+function AdvancedPanel({ settings, setSettings, source, onClose }: { settings: CompositionSettings; setSettings: Dispatch<SetStateAction<CompositionSettings>>; source: SourceImage | null; onClose: () => void }) {
   const directionName = directionMeta.find((item) => item.id === settings.direction)?.name ?? settings.direction;
-  return <aside className="panel-slide absolute bottom-0 right-0 top-0 z-30 w-[320px] border-l border-hairline-dark bg-surface-card p-5"><div className="mb-5 flex items-start justify-between"><div><p className="section-kicker">{t.studio.advancedKicker}</p><h2 className="kr-heading mt-1 text-[20px] font-semibold leading-[1.45] tracking-[-0.008em] text-white">{t.studio.precision}</h2></div><button onClick={onClose} className="grid size-9 place-items-center rounded-md border border-hairline-dark text-[18px] text-muted hover:text-white" aria-label={t.studio.closeAdvancedAria}>×</button></div><p className="kr-body text-[13px] leading-[1.65] text-muted-strong">{t.studio.precisionBody}</p><div className="mt-6 space-y-3"><ValueRow label={t.studio.master} value="1440 × 900" /><ValueRow label={t.studio.outputs} value={t.studio.outputsValue} /><ValueRow label={t.studio.directionValue} value={directionName} /><ValueRow label={t.studio.renderer} value="Canvas 2D" /><ValueRow label={t.studio.sourceValue} value={t.studio.browserLocal} /></div><button onClick={() => setSettings(DEFAULT)} className="secondary-button mt-7 h-10 w-full">{t.studio.reset}</button></aside>;
+  return <aside className="panel-slide absolute bottom-0 right-0 top-0 z-30 w-[320px] border-l border-hairline-dark bg-surface-card p-5"><div className="mb-5 flex items-start justify-between"><div><p className="section-kicker">{t.studio.advancedKicker}</p><h2 className="kr-heading mt-1 text-[20px] font-semibold leading-[1.45] tracking-[-0.008em] text-white">{t.studio.precision}</h2></div><button onClick={onClose} className="grid size-9 place-items-center rounded-md border border-hairline-dark text-[18px] text-muted hover:text-white" aria-label={t.studio.closeAdvancedAria}>×</button></div><p className="kr-body text-[13px] leading-[1.65] text-muted-strong">{t.studio.precisionBody}</p><div className="mt-6 space-y-3"><ValueRow label={t.studio.master} value="1440 × 900" /><ValueRow label={t.studio.outputs} value={t.studio.outputsValue} /><ValueRow label={t.studio.directionValue} value={directionName} /><ValueRow label={t.studio.renderer} value="Canvas 2D" /><ValueRow label={t.studio.sourceValue} value={!source ? t.studio.noSource : source.origin === 'url' ? t.studio.serverCapture : t.studio.browserLocal} /></div><button onClick={() => setSettings(DEFAULT)} className="secondary-button mt-7 h-10 w-full">{t.studio.reset}</button></aside>;
 }
 
 function ValueRow({ label, value }: { label: string; value: string }) {

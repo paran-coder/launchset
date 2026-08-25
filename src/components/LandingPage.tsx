@@ -29,7 +29,7 @@ export function LandingPage({ onEnterStudio }: Props) {
             <div className="mb-6 flex w-fit items-center gap-2 rounded-md border border-hairline-dark bg-surface-card px-3 py-2 text-[12px] font-medium leading-[1.5] text-muted-strong">
               <span className="size-1.5 rounded-full bg-primary" />{t.landing.badge}
             </div>
-            <h1 className="kr-heading max-w-[720px] text-[42px] font-bold leading-[1.12] tracking-[-0.012em] text-white sm:text-[52px] lg:text-[60px]">
+            <h1 className="kr-heading balanced-heading max-w-[700px] text-[42px] font-bold leading-[1.12] tracking-[-0.012em] text-white sm:text-[52px] lg:text-[60px]">
               {t.brand.sloganLead}<br /><span className="text-primary">{t.brand.sloganAccent}</span>
             </h1>
             <p className="kr-body mt-6 max-w-[610px] text-[17px] leading-[1.72] text-muted-strong">{t.landing.intro}</p>
@@ -47,7 +47,9 @@ export function LandingPage({ onEnterStudio }: Props) {
         <section id="product" className="border-y border-hairline-dark bg-[#0D1115]">
           <div className="mx-auto max-w-[1280px] px-5 py-20 lg:px-8 lg:py-24">
             <p className="section-kicker">{t.landing.principleKicker}</p>
-            <h2 className="section-heading kr-heading max-w-[800px]">{t.landing.principleTitle}</h2>
+            <h2 className="section-heading kr-heading max-w-[920px]">
+              {t.landing.principleTitle.map((line) => <span key={line} className="block">{line}</span>)}
+            </h2>
             <div className="mt-12 grid gap-4 md:grid-cols-3">
               <Feature index="01" icon={<ImageIcon />} title={t.landing.features[0].title} copy={t.landing.features[0].copy} />
               <Feature index="02" icon={<SparkIcon />} title={t.landing.features[1].title} copy={t.landing.features[1].copy} />
@@ -60,7 +62,7 @@ export function LandingPage({ onEnterStudio }: Props) {
           <div className="grid gap-12 lg:grid-cols-[0.72fr_1.28fr]">
             <div>
               <p className="section-kicker">{t.landing.workflowKicker}</p>
-              <h2 className="section-heading kr-heading">{t.landing.workflowTitle}</h2>
+              <h2 className="section-heading kr-heading balanced-heading max-w-[500px]">{t.landing.workflowTitle}</h2>
               <p className="section-body kr-body mt-5">{t.landing.workflowBody}</p>
             </div>
             <div className="divide-y divide-hairline-dark border-y border-hairline-dark">
@@ -81,7 +83,7 @@ export function LandingPage({ onEnterStudio }: Props) {
               <span className="grid size-12 shrink-0 place-items-center rounded-lg border border-hairline-dark bg-canvas-dark text-primary"><ShieldIcon /></span>
               <div>
                 <p className="section-kicker">{t.landing.privacyKicker}</p>
-                <h2 className="kr-heading mt-2 text-[28px] font-semibold leading-[1.35] tracking-[-0.01em] text-white">{t.landing.privacyTitle}</h2>
+                <h2 className="kr-heading balanced-heading mt-2 max-w-[760px] text-[28px] font-semibold leading-[1.35] tracking-[-0.01em] text-white">{t.landing.privacyTitle}</h2>
                 <p className="kr-body mt-3 max-w-[760px] text-[14px] leading-[1.7] text-muted-strong">{t.landing.privacyBody}</p>
               </div>
             </div>
@@ -91,7 +93,9 @@ export function LandingPage({ onEnterStudio }: Props) {
 
         <section className="mx-auto max-w-[1280px] px-5 py-24 text-center lg:px-8">
           <p className="section-kicker">{t.landing.finalKicker}</p>
-          <h2 className="kr-heading mx-auto max-w-[820px] text-[38px] font-bold leading-[1.2] tracking-[-0.015em] text-white sm:text-[46px]">{t.landing.finalTitle}</h2>
+          <h2 className="kr-heading balanced-heading mx-auto max-w-[760px] text-[32px] font-bold leading-[1.24] tracking-[-0.012em] text-white sm:text-[44px] lg:text-[46px]">
+            {t.landing.finalTitle.map((line) => <span key={line} className="block">{line}</span>)}
+          </h2>
           <button onClick={onEnterStudio} className="primary-button mx-auto mt-8 h-12 px-7 text-[15px]">{t.nav.start} <ArrowIcon /></button>
         </section>
       </main>
@@ -110,7 +114,7 @@ function Feature({ index, icon, title, copy }: { index: string; icon: ReactNode;
   return (
     <article className="rounded-xl border border-hairline-dark bg-surface-card p-6">
       <div className="flex items-center justify-between"><span className="grid size-10 place-items-center rounded-lg bg-primary text-ink">{icon}</span><span className="font-number text-[12px] font-semibold text-muted">{index}</span></div>
-      <h3 className="kr-heading mt-8 text-[20px] font-semibold leading-[1.45] text-white">{title}</h3>
+      <h3 className="kr-heading balanced-heading mt-8 text-[20px] font-semibold leading-[1.5] text-white">{title}</h3>
       <p className="kr-body mt-3 text-[14px] leading-[1.7] text-muted-strong">{copy}</p>
     </article>
   );
