@@ -1,44 +1,31 @@
-# Launchset v1.4.0 — Context Notes
+# Launchset v1.4.2 — Context Notes
 
-## Goal
-Add URL Capture while preserving the v1.3.4 Korean UI polish and GitHub → Vercel deployment model.
+## 목적
+Launchset의 Node.js 런타임을 Vercel 기본 런타임과 맞추기 위해 22.x에서 24.x로 통일하는 호환성 패치입니다.
 
-## User-approved sequence
-1. v1.3.4 Korean UI Polish
-2. v1.4.0 URL Capture
-3. Motion remains in the originally planned later phase
+## 승인된 변경 범위
+1. `package.json`의 `engines.node`를 `24.x`로 변경
+2. `.nvmrc`를 `24`로 변경
+3. GitHub Actions의 Node 버전을 `24`로 변경
+4. 문서의 Node 기준을 `24.x`로 통일
+5. Runtime Version Consistency Gate 추가
+6. 기능/UI 변경 없음
+7. Vercel Preview에서 실제 빌드 및 URL Capture 검증 후 v1.5.0으로 진행
 
-## URL Capture architecture
-- Frontend: URL input in Studio source panel
-- Backend: Vercel Function at `/api/capture`
-- Remote browser: Browserless REST `/function` API
-- API token: server-side environment variable only
-- Frontend receives PNG binary and converts it to existing `SourceImage`
+## 프로젝트 규칙
+- 단일 프로젝트 루트: `Launchset-v1.4.2`
+- GitHub 배포 산출물: `release/github/`
+- GitHub 배포 ZIP: `release/Launchset-v1.4.2-github.zip`
+- 전체 보관 ZIP: `release/Launchset-v1.4.2-full.zip`
 
-## Environment variables
-- `BROWSERLESS_API_TOKEN` — required for URL capture
-- `BROWSERLESS_API_URL` — optional, defaults to `https://production-sfo.browserless.io`
+## 기술 기준
+- React 19
+- Vite 7.1.3
+- Tailwind CSS 4.3.3
+- TypeScript 5.8
+- Node.js 24.x
+- GitHub → Vercel
+- URL Capture: Vercel Function + Browserless
 
-## Security rules
-- Accept only `http:` and `https:` URLs
-- Reject credentials embedded in URLs
-- Reject localhost, `.local`, `.internal`, loopback, link-local, private IPv4 literals and obvious IPv6 local forms
-- Do not expose Browserless token to the browser
-- Enforce capture timeout and image-size ceiling
-- No arbitrary script input from the client
-
-## Capture presets
-- Desktop: 1440 × 900
-- Mobile: 390 × 844
-- Capture viewport only, not full page
-- Animations/transitions suppressed before capture
-
-## UI principles
-- File upload remains available
-- URL Capture is a second source method, not a separate product mode
-- Capture state must expose: idle / validating / capturing / success / error
-- User should understand that URL Capture is server-assisted while file upload remains local
-
-## Versioning and release
-Single project root: `Launchset-v1.4.0`
-GitHub deployment files: `release/github/`
+## 다음 단계
+v1.4.2 배포와 실제 URL Capture 검증이 끝난 뒤 원래 계획대로 `v1.5.0 Brand System`으로 진행합니다.

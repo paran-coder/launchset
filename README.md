@@ -1,51 +1,42 @@
-# Launchset v1.4.0
+# Launchset v1.4.2
 
-Launchset은 제품 URL 또는 스크린샷 하나에서 출시·마케팅용 비주얼 팩을 만드는 Product Visual Studio입니다.
+Launchset v1.4.2는 Node.js 런타임을 **24.x**로 통일하는 배포 호환성 패치입니다.
 
-## v1.4.0 핵심
-스크린샷 파일을 직접 준비하지 않아도 URL을 입력해 Desktop 또는 Mobile 화면을 캡처하고, 기존 Visual Pack 파이프라인의 소스로 바로 사용할 수 있습니다.
+## 이번 버전의 목적
+Vercel Project Settings의 Node 24.x와 저장소 설정을 일치시켜 경고와 런타임 불일치를 제거합니다.
 
-## Source modes
-- 파일 업로드 — 브라우저 로컬 처리
-- URL 캡처 — Vercel Function + Browserless 원격 브라우저 처리
+## 기능
+v1.4.1과 동일합니다.
+- 스크린샷 업로드
+- URL Capture
+- Desktop / Mobile Capture
+- Canvas 렌더링
+- Direction preset
+- 5종 Visual Pack
+- PNG / ZIP Export
+- 한국어 UI
 
-## Visual Pack
-- Website Hero — 1440 × 900
-- Open Graph — 1200 × 630
-- Product Hunt — 1270 × 760
-- Social Square — 1080 × 1080
-- Story — 1080 × 1920
+## Runtime
+- Node.js: `24.x`
+- React: 19
+- Vite: 7.1.3
+- Tailwind CSS: 4.3.3
+- TypeScript: 5.8
 
-## Stack
-- React 19
-- TypeScript 5.8
-- Tailwind CSS v4
-- Vite 7
-- Vercel Functions
-- Browserless Function API
+## 배포
+GitHub 저장소를 Vercel에 연결하는 구조를 전제로 합니다.
+Vercel Project Settings에서도 Node.js를 `24.x`로 유지합니다.
 
-## Required environment variable
-```text
-BROWSERLESS_API_TOKEN
-```
+## Version
+`1.4.2`
 
-Optional:
-```text
-BROWSERLESS_API_URL=https://production-sfo.browserless.io
-```
+## Runtime Consistency Gate
 
-The token is server-only. Never prefix it with `VITE_`.
-
-## Commands
 ```bash
-npm install
-npm run typecheck
-npm run build
-npm run dev
+npm run check:runtime
 ```
 
-## Deployment
-GitHub-ready files are generated under `release/github/`. Import that repository into Vercel, add the capture environment variable, then use the first Vercel Preview as the production build and live-capture gate.
+이 명령은 `package.json`, `.nvmrc`, GitHub Actions의 Node major가 모두 24인지 검사합니다. Vercel Project Settings는 Node.js 24.x로 유지합니다.
 
-## Product roadmap discipline
-v1.4.0 adds URL Capture only. Brand System, assisted art direction, and Motion remain later roadmap stages in the previously approved order.
+## Production Verification
+GitHub Actions와 Vercel Preview에서 Node 24 기반 `typecheck`와 `build`를 통과한 뒤 실제 URL Capture를 검증합니다.

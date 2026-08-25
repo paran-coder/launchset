@@ -1,56 +1,50 @@
-# Launchset v1.4.0 — Checklist
+# Launchset v1.4.2 — Checklist
 
-## Development Instruction Gate
-- [x] Plan explained and user approval already obtained
-- [x] context-notes.md created before code changes
-- [x] checklist.md created before code changes
-- [x] README.md created before code changes
-- [x] User manual.md created before code changes
-- [x] SemVer v1.4.0 confirmed
-- [x] Single-root naming rule confirmed
-- [x] ui-polish rules confirmed
-- [x] design-token rules confirmed
-- [x] Each major phase self-reviewed and scored
+## 개발 지침 준수 Gate
+- [x] 실행 전 계획 설명
+- [x] 사용자 승인 확인
+- [x] 코드 작업 전 context-notes.md 생성
+- [x] 코드 작업 전 checklist.md 생성
+- [x] 코드 작업 전 README.md 생성
+- [x] 코드 작업 전 User manual.md 생성
+- [x] SemVer 버전 `v1.4.2` 확정
+- [x] 단일 프로젝트 루트 규칙 확인
+- [x] GitHub → Vercel 배포 전제 확인
+- [x] 기능/UI 변경 없는 Runtime 패치 범위 확인
 
-## Phase 1 — Capture API
-- [x] Add `/api/capture`
-- [x] Validate request method/body
-- [x] Normalize URL
-- [x] Block unsafe/local destinations
-- [x] Keep token server-side
-- [x] Add desktop/mobile viewport
-- [x] Add upstream timeout
-- [x] Return PNG with no-store cache headers
-- [x] Map upstream errors to Korean-safe API errors
-- [x] Self-review and score
+## Runtime Version Consistency Gate
+- [x] package.json `engines.node` = `24.x`
+- [x] .nvmrc = `24`
+- [x] GitHub Actions Node = `24`
+- [x] Vercel Project Node = `24.x` — 사용자 Vercel 로그/설정 기준, v1.4.2 배포 로그에서 재확인 예정
+- [x] README / runtime 문서 Node = `24.x`
+- [x] 코드/설정 내 Node 22 런타임 지정 잔존 0건
 
-## Phase 2 — Studio URL Capture UI
-- [x] Add upload / URL source selector
-- [x] Add URL field
-- [x] Add Desktop / Mobile capture selector
-- [x] Add capture loading state
-- [x] Add capture error state
-- [x] Load returned PNG into existing SourceImage pipeline
-- [x] Preserve file upload flow
-- [x] Clarify local vs server-assisted privacy copy
-- [x] Self-review and score
+## Phase 1 — Source Integration
+- [x] v1.4.1 소스 통합
+- [x] 버전 문자열 1.4.2 정렬
+- [x] Node 24 전환
+- [x] 자체 점검 및 10점 평가
 
-## Phase 3 — Vercel / Release QA
-- [x] Update SPA rewrites so `/api/*` is not swallowed
-- [x] Add env template
-- [x] Add deployment instructions
-- [x] Parse all TS/TSX
-- [x] Typecheck standalone server function where possible
-- [x] Verify ZIP writer strict compile
-- [x] Scan text sizes / colors
-- [x] Build release/github package
-- [x] Generate checksums
-- [x] Final score
+## Phase 2 — CI / Vercel Consistency
+- [x] GitHub Actions Node 24
+- [x] Vercel 설정 정합성 확인 — 저장소/사용자 설정 기준, 실제 배포에서 재확인
+- [x] install / build command 확인
+- [x] Runtime Version Consistency Gate PASS
+- [x] 자체 점검 및 10점 평가
 
-## Live Production Gates
-- [ ] GitHub Actions `npm run typecheck` PASS with installed dependencies
-- [ ] GitHub Actions `npm run build` PASS
-- [ ] Vercel `BROWSERLESS_API_TOKEN` configured
-- [ ] Vercel Preview Desktop URL capture PASS
-- [ ] Vercel Preview Mobile URL capture PASS
-- [ ] URL capture → Visual Pack PNG / ZIP smoke test PASS
+## Phase 3 — Static Verification
+- [x] TS/TSX syntax 검사
+- [x] 상대 import 검사
+- [x] Vite/Tailwind/TypeScript 호환성 재검사
+- [x] ZIP writer regression 확인
+- [x] URL Capture API regression 확인
+- [x] 자체 점검 및 10점 평가
+
+## Phase 4 — Release
+- [x] release/github 생성
+- [x] GitHub용 ZIP 생성
+- [x] Full ZIP 생성
+- [x] SHA256SUMS 생성
+- [x] 최종 QA
+- [x] Vercel 실제 빌드/URL Capture를 마지막 Production Gate로 명시

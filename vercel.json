@@ -9,7 +9,14 @@
     }
   },
   "rewrites": [
-    { "source": "/studio", "destination": "/index.html" },
-    { "source": "/studio/:path*", "destination": "/index.html" }
-  ]
+    {
+      "source": "/studio",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/studio/:path*",
+      "destination": "/index.html"
+    }
+  ],
+  "installCommand": "npm install --no-audit --no-fund"
 }
