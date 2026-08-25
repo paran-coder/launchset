@@ -1,41 +1,28 @@
-# Launchset Studio v1.3.1
+# Launchset v1.3.3
 
-React + TypeScript + Vite + Tailwind CSS v4 implementation of Launchset's local-first Visual Pack MVP.
+**하나의 제품으로, 출시 비주얼을 한 번에.**
 
-## Local development
+Launchset은 제품 스크린샷 하나에서 웹사이트 Hero, Open Graph, Product Hunt, 소셜 정사각형, Story 등 여러 출시용 비주얼을 생성하는 웹 기반 Product Visual Studio입니다.
 
-```bash
-npm install
-npm run dev
-```
+## 이번 버전의 목적
+v1.3.3은 기능 추가보다 **한국어 현지화와 배포 안정성**에 집중하는 패치 버전입니다.
 
-## Production checks
+- 한국어 기본 UI
+- 한국어에 맞춘 타이포그래피/줄바꿈/밀도 보정
+- 사용자 노출 문자열 중앙화
+- 향후 ko/en 언어 전환을 추가하기 쉬운 구조
+- GitHub → Vercel 배포 구조 유지
+- v1.3.2의 Multi-Artboard / Visual Pack / ZIP Export 기능 유지
 
-```bash
-npm run typecheck
-npm run build
-npm run preview
-```
+## 기술 스택
+- React
+- TypeScript
+- Vite
+- Tailwind CSS 계열 유틸리티 기반 스타일링
+- Canvas 2D
+- Client-side PNG/ZIP export
 
-## GitHub → Vercel
+## 배포
+배포 목표는 GitHub 저장소를 Vercel에 연결하는 구조입니다.
 
-This app is structured so the `app/` directory can be used as the repository root, or selected as Vercel's Root Directory if the full Launchset package is pushed to GitHub.
-
-Vercel settings are encoded in `vercel.json`:
-
-- Framework: Vite
-- Build command: `npm run build`
-- Output: `dist`
-- SPA rewrite: direct routes such as `/studio` resolve to `index.html`
-
-Node 22 is declared through `.nvmrc` and `package.json` engines.
-
-## v1.3 core capability
-
-- Upload PNG/JPEG/WebP locally
-- Canvas 2D composition
-- Four art directions
-- Five responsive output artboards
-- Individual PNG downloads
-- Selected Visual Pack ZIP download with a dependency-free browser ZIP writer
-- No backend required
+최종 GitHub 업로드용 패키지는 `release/Launchset-v1.3.3-github.zip`으로 생성합니다.

@@ -1,13 +1,16 @@
+import { t } from '../i18n';
 import type { CompositionSettings, DirectionId, OutputPreset, SourceImage } from '../types';
+
+const CANVAS_FONT = 'system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif';
 
 export const ARTBOARD = { width: 1440, height: 900 } as const;
 
 export const outputPresets: OutputPreset[] = [
-  { id: 'hero', name: 'Website Hero', shortName: 'Hero', width: 1440, height: 900, fileSuffix: 'website-hero', description: 'Landing pages and feature sections' },
-  { id: 'og', name: 'Open Graph', shortName: 'OG', width: 1200, height: 630, fileSuffix: 'open-graph', description: 'Link previews and social shares' },
-  { id: 'productHunt', name: 'Product Hunt', shortName: 'PH', width: 1270, height: 760, fileSuffix: 'product-hunt', description: 'Launch gallery and product showcases' },
-  { id: 'square', name: 'Social Square', shortName: 'Square', width: 1080, height: 1080, fileSuffix: 'social-square', description: 'Instagram and square social posts' },
-  { id: 'story', name: 'Story', shortName: 'Story', width: 1080, height: 1920, fileSuffix: 'story', description: 'Stories, reels covers and vertical promos' },
+  { id: 'hero', name: t.outputs.hero.name, shortName: t.outputs.hero.shortName, width: 1440, height: 900, fileSuffix: 'website-hero', description: t.outputs.hero.description },
+  { id: 'og', name: t.outputs.og.name, shortName: t.outputs.og.shortName, width: 1200, height: 630, fileSuffix: 'open-graph', description: t.outputs.og.description },
+  { id: 'productHunt', name: t.outputs.productHunt.name, shortName: t.outputs.productHunt.shortName, width: 1270, height: 760, fileSuffix: 'product-hunt', description: t.outputs.productHunt.description },
+  { id: 'square', name: t.outputs.square.name, shortName: t.outputs.square.shortName, width: 1080, height: 1080, fileSuffix: 'social-square', description: t.outputs.square.description },
+  { id: 'story', name: t.outputs.story.name, shortName: t.outputs.story.shortName, width: 1080, height: 1920, fileSuffix: 'story', description: t.outputs.story.description },
 ];
 
 export const directionPresets: Record<DirectionId, Partial<CompositionSettings>> = {
@@ -18,10 +21,10 @@ export const directionPresets: Record<DirectionId, Partial<CompositionSettings>>
 };
 
 export const directionMeta: Array<{ id: DirectionId; name: string; description: string }> = [
-  { id: 'minimal', name: 'Minimal', description: 'Product-first, quiet contrast' },
-  { id: 'editorial', name: 'Editorial', description: 'Bold launch-message treatment' },
-  { id: 'signal', name: 'Signal', description: 'Dark, precise, high-voltage' },
-  { id: 'depth', name: 'Depth', description: 'Layered and dimensional' },
+  { id: 'minimal', name: t.directions.minimal.name, description: t.directions.minimal.description },
+  { id: 'editorial', name: t.directions.editorial.name, description: t.directions.editorial.description },
+  { id: 'signal', name: t.directions.signal.name, description: t.directions.signal.description },
+  { id: 'depth', name: t.directions.depth.name, description: t.directions.depth.description },
 ];
 
 type LayoutMode = 'wide' | 'square' | 'portrait';
@@ -192,23 +195,23 @@ function drawDirectionCopy(
 
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = direction === 'signal' ? '#FCD535' : muted;
-  ctx.font = `600 ${labelSize}px Inter, system-ui, sans-serif`;
-  ctx.fillText(direction === 'editorial' ? 'LAUNCH EDITION / 01' : 'PRODUCT STORY / LAUNCHSET', layout.copyX, layout.labelY);
+  ctx.font = `600 ${labelSize}px ${CANVAS_FONT}`;
+  ctx.fillText(direction === 'editorial' ? t.canvas.editorialLabel : t.canvas.storyLabel, layout.copyX, layout.labelY);
 
   ctx.fillStyle = ink;
-  ctx.font = `700 ${layout.headlineSize}px Inter, system-ui, sans-serif`;
+  ctx.font = `700 ${layout.headlineSize}px ${CANVAS_FONT}`;
   const lines = direction === 'editorial'
-    ? ['MAKE THE', 'PRODUCT HIT.']
+    ? t.canvas.editorialHeadline
     : direction === 'signal'
-      ? ['Launch visuals,', 'without the busywork.']
-      : ['Turn product screens', 'into launch-ready visuals.'];
+      ? t.canvas.signalHeadline
+      : t.canvas.defaultHeadline;
   lines.forEach((line, i) => ctx.fillText(line, layout.copyX, layout.headlineY + i * layout.headlineGap));
 
   ctx.fillStyle = muted;
-  ctx.font = `400 ${subSize}px Inter, system-ui, sans-serif`;
+  ctx.font = `400 ${subSize}px ${CANVAS_FONT}`;
   const sub = direction === 'editorial'
-    ? 'A decisive frame for launches that need more energy.'
-    : 'One source. Multiple formats. Export locally.';
+    ? t.canvas.editorialSub
+    : t.canvas.defaultSub;
   const maxSubW = layout.mode === 'wide' ? width * 0.42 : width * 0.82;
   drawWrappedText(ctx, sub, layout.copyX, layout.subY, maxSubW, subSize * 1.45, 2);
 }
@@ -324,13 +327,13 @@ function drawPlaceholder(
   });
 
   const titleSize = Math.max(13, 18 * layout.unit);
-  const bodySize = Math.max(11, 15 * layout.unit);
+  const bodySize = Math.max(12, 15 * layout.unit);
   ctx.fillStyle = '#181A20';
-  ctx.font = `600 ${titleSize}px Inter, system-ui, sans-serif`;
-  ctx.fillText('Drop a product screenshot to replace this preview', x + 42 * layout.unit, y + headerH + 72 * layout.unit);
-  ctx.fillStyle = '#707A8A';
-  ctx.font = `400 ${bodySize}px Inter, system-ui, sans-serif`;
-  ctx.fillText('PNG, JPEG or WebP · rendered locally', x + 42 * layout.unit, y + headerH + 105 * layout.unit);
+  ctx.font = `600 ${titleSize}px ${CANVAS_FONT}`;
+  drawWrappedText(ctx, t.canvas.placeholderTitle, x + 42 * layout.unit, y + headerH + 72 * layout.unit, w - 84 * layout.unit, titleSize * 1.55, 2);
+  ctx.fillStyle = '#5E6673';
+  ctx.font = `400 ${bodySize}px ${CANVAS_FONT}`;
+  ctx.fillText(t.canvas.placeholderBody, x + 42 * layout.unit, y + headerH + 126 * layout.unit);
   ctx.restore();
 }
 
@@ -343,9 +346,9 @@ function drawSignature(
 ) {
   const x = layout.mode === 'wide' ? width * 0.067 : width * 0.08;
   const y = height * 0.94;
-  ctx.fillStyle = direction === 'signal' || direction === 'depth' ? '#929AA5' : '#707A8A';
-  ctx.font = `500 ${Math.max(10, 13 * layout.unit)}px Inter, system-ui, sans-serif`;
-  ctx.fillText('Made with Launchset', x, y);
+  ctx.fillStyle = direction === 'signal' || direction === 'depth' ? '#929AA5' : '#5E6673';
+  ctx.font = `500 ${Math.max(12, 13 * layout.unit)}px ${CANVAS_FONT}`;
+  ctx.fillText(t.canvas.signature, x, y);
   ctx.fillStyle = '#FCD535';
   ctx.fillRect(x, y + 13 * layout.unit, 22 * layout.unit, Math.max(2, 3 * layout.unit));
 }

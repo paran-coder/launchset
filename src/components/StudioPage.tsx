@@ -8,6 +8,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from 'react';
+import { t } from '../i18n';
 import { directionMeta, directionPresets, exportPng, renderComposition } from '../lib/render';
 import type { CompositionSettings, DirectionId, SourceImage } from '../types';
 import { CheckIcon, ExportIcon, ImageIcon, SparkIcon, TuneIcon, UploadIcon } from './Icons';
@@ -48,11 +49,11 @@ export function StudioPage({ onGoHome }: Props) {
     if (!file) return;
     setError('');
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      setError('PNG, JPEG 또는 WebP 파일을 선택해 주세요.');
+      setError(t.studio.invalidFile);
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setError('파일은 20MB 이하를 권장합니다.');
+      setError(t.studio.fileTooLarge);
       return;
     }
 
@@ -72,7 +73,7 @@ export function StudioPage({ onGoHome }: Props) {
     };
     image.onerror = () => {
       URL.revokeObjectURL(url);
-      setError('이미지를 읽지 못했습니다. 다른 파일을 선택해 주세요.');
+      setError(t.studio.imageReadFailed);
     };
     image.src = url;
   }, []);
@@ -98,7 +99,8 @@ export function StudioPage({ onGoHome }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [packOpen]);
 
-  const sourceMeta = useMemo(() => source ? `${source.width} × ${source.height}` : 'No source yet', [source]);
+  const sourceMeta = useMemo(() => source ? `${source.width} × ${source.height}` : t.studio.noSource, [source]);
+  const currentDirection = directionMeta.find((item) => item.id === settings.direction)?.name ?? settings.direction;
 
   return (
     <>
@@ -106,62 +108,62 @@ export function StudioPage({ onGoHome }: Props) {
       <div className="studio-shell hidden min-h-screen bg-canvas-dark text-body lg:grid">
         <header className="col-span-3 flex h-16 items-center justify-between border-b border-hairline-dark bg-canvas-dark px-4">
           <div className="flex items-center gap-3">
-            <button onClick={onGoHome} className="flex items-center gap-2" aria-label="Go to Launchset home"><Mark className="size-8" /><span className="text-[15px] font-semibold tracking-[-0.01em] text-white">Launchset</span></button>
+            <button onClick={onGoHome} className="flex items-center gap-2" aria-label={t.studio.homeAria}><Mark className="size-8" /><span className="text-[15px] font-semibold tracking-[-0.005em] text-white">{t.brand.name}</span></button>
             <span className="text-muted">/</span>
-            <span className="text-[13px] font-medium text-muted-strong">Untitled launch</span>
+            <span className="text-[13px] font-medium leading-[1.55] text-muted-strong">{t.studio.untitled}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-2 text-[12px] text-muted md:flex"><i className="size-1.5 rounded-full bg-primary" />Rendered locally</span>
-            <button className="secondary-button hidden h-10 px-4 sm:inline-flex" onClick={() => setAdvanced((value) => !value)}><TuneIcon className="size-4" />Advanced</button>
-            <button className="secondary-button hidden h-10 px-4 xl:inline-flex" onClick={doSingleExport} disabled={!source}><ExportIcon className="size-4" />Hero PNG</button>
-            <button className="primary-button h-10 px-5" onClick={() => setPackOpen(true)}><ExportIcon className="size-4" />Visual Pack</button>
+            <span className="hidden items-center gap-2 text-[12px] leading-[1.5] text-muted md:flex"><i className="size-1.5 rounded-full bg-primary" />{t.studio.renderedLocally}</span>
+            <button className="secondary-button hidden h-10 px-4 sm:inline-flex" onClick={() => setAdvanced((value) => !value)}><TuneIcon className="size-4" />{t.studio.advanced}</button>
+            <button className="secondary-button hidden h-10 px-4 xl:inline-flex" onClick={doSingleExport} disabled={!source}><ExportIcon className="size-4" />{t.studio.heroPng}</button>
+            <button className="primary-button h-10 px-5" onClick={() => setPackOpen(true)}><ExportIcon className="size-4" />{t.studio.visualPack}</button>
           </div>
         </header>
 
         <aside className="hidden border-r border-hairline-dark bg-[#0D1115] lg:flex lg:flex-col lg:items-center lg:gap-2 lg:py-3">
-          <RailButton active icon={<SparkIcon />} label="Create" />
-          <RailButton icon={<ImageIcon />} label="Source" />
-          <RailButton icon={<TuneIcon />} label="Tune" />
+          <RailButton active icon={<SparkIcon />} label={t.studio.rail.create} />
+          <RailButton icon={<ImageIcon />} label={t.studio.rail.source} />
+          <RailButton icon={<TuneIcon />} label={t.studio.rail.tune} />
           <div className="my-1 h-px w-8 bg-hairline-dark" />
-          <RailButton icon={<ExportIcon />} label="Pack" onClick={() => setPackOpen(true)} />
+          <RailButton icon={<ExportIcon />} label={t.studio.rail.pack} onClick={() => setPackOpen(true)} />
         </aside>
 
         <aside className="col-span-1 border-r border-hairline-dark bg-surface-card px-4 py-5 lg:col-start-2 lg:row-start-2 lg:overflow-y-auto">
           <div className="mb-6">
-            <p className="section-kicker">CREATE</p>
-            <h1 className="mt-1 text-[20px] font-semibold leading-[1.35] tracking-[-0.015em] text-white">Launch visual</h1>
-            <p className="mt-2 text-[13px] leading-[1.5] text-muted-strong">Start from a direction, then let the Output Pack adapt it across formats.</p>
+            <p className="section-kicker">{t.studio.createKicker}</p>
+            <h1 className="kr-heading mt-1 text-[20px] font-semibold leading-[1.45] tracking-[-0.008em] text-white">{t.studio.createTitle}</h1>
+            <p className="kr-body mt-2 text-[13px] leading-[1.6] text-muted-strong">{t.studio.createBody}</p>
           </div>
 
-          <Section title="Source" meta={sourceMeta}>
+          <Section title={t.studio.source} meta={sourceMeta}>
             <input ref={fileInput} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => loadFile(event.target.files?.[0])} />
             <button onClick={() => fileInput.current?.click()} className="flex w-full items-center gap-3 rounded-lg border border-hairline-dark bg-canvas-dark p-3 text-left hover:border-muted">
               <span className="grid size-10 shrink-0 place-items-center rounded-md bg-surface-elevated text-primary"><UploadIcon /></span>
-              <span className="min-w-0"><b className="block truncate text-[13px] font-semibold leading-5 text-white">{source?.name || 'Choose screenshot'}</b><small className="block text-[12px] leading-[1.4] text-muted">PNG · JPEG · WebP</small></span>
+              <span className="min-w-0"><b className="block truncate text-[13px] font-semibold leading-[1.55] text-white">{source?.name || t.studio.chooseScreenshot}</b><small className="block text-[12px] leading-[1.5] text-muted">PNG · JPEG · WebP</small></span>
             </button>
-            {error && <p role="alert" className="mt-2 text-[12px] leading-[1.45] text-[#F6465D]">{error}</p>}
+            {error && <p role="alert" className="kr-body mt-2 text-[12px] leading-[1.55] text-[#F6465D]">{error}</p>}
           </Section>
 
-          <Section title="Direction" meta={settings.direction}>
+          <Section title={t.studio.direction} meta={currentDirection}>
             <div className="space-y-2">{directionMeta.map((item) => <DirectionButton key={item.id} item={item} selected={settings.direction === item.id} onClick={() => applyDirection(item.id)} />)}</div>
           </Section>
 
-          <Section title="Background">
-            <div className="flex flex-wrap gap-2">{backgrounds.map((color) => <button key={color} onClick={() => setSettings((previous) => ({ ...previous, background: color }))} aria-label={`Background ${color}`} className={`size-9 rounded-md border ${settings.background === color ? 'border-primary ring-2 ring-primary/20' : 'border-hairline-dark'}`} style={{ backgroundColor: color }} />)}</div>
+          <Section title={t.studio.background}>
+            <div className="flex flex-wrap gap-2">{backgrounds.map((color) => <button key={color} onClick={() => setSettings((previous) => ({ ...previous, background: color }))} aria-label={t.studio.backgroundAria(color)} className={`size-9 rounded-md border ${settings.background === color ? 'border-primary ring-2 ring-primary/20' : 'border-hairline-dark'}`} style={{ backgroundColor: color }} />)}</div>
           </Section>
 
-          <Section title="Frame" meta={settings.frame}>
-            <div className="grid grid-cols-2 gap-2">{(['browser', 'none'] as const).map((frame) => <button key={frame} onClick={() => setSettings((previous) => ({ ...previous, frame }))} className={`h-10 rounded-md border text-[13px] font-medium capitalize ${settings.frame === frame ? 'border-primary bg-[#3A3A1F] text-primary' : 'border-hairline-dark bg-canvas-dark text-muted-strong'}`}>{frame}</button>)}</div>
+          <Section title={t.studio.frame} meta={t.studio.frameLabels[settings.frame]}>
+            <div className="grid grid-cols-2 gap-2">{(['browser', 'none'] as const).map((frame) => <button key={frame} onClick={() => setSettings((previous) => ({ ...previous, frame }))} className={`h-10 rounded-md border text-[13px] font-medium ${settings.frame === frame ? 'border-primary bg-[#3A3A1F] text-primary' : 'border-hairline-dark bg-canvas-dark text-muted-strong'}`}>{t.studio.frameLabels[frame]}</button>)}</div>
           </Section>
 
-          <Range label="Scale" value={Math.round(settings.scale * 100)} min={46} max={82} onChange={(value) => setSettings((previous) => ({ ...previous, scale: value / 100 }))} />
-          <Range label="Radius" value={settings.radius} min={0} max={32} onChange={(value) => setSettings((previous) => ({ ...previous, radius: value }))} />
-          <Range label="Shadow" value={settings.shadow} min={0} max={60} onChange={(value) => setSettings((previous) => ({ ...previous, shadow: value }))} />
+          <Range label={t.studio.scale} value={Math.round(settings.scale * 100)} min={46} max={82} onChange={(value) => setSettings((previous) => ({ ...previous, scale: value / 100 }))} />
+          <Range label={t.studio.radius} value={settings.radius} min={0} max={32} onChange={(value) => setSettings((previous) => ({ ...previous, radius: value }))} />
+          <Range label={t.studio.shadow} value={settings.shadow} min={0} max={60} onChange={(value) => setSettings((previous) => ({ ...previous, shadow: value }))} />
 
           <section className="border-t border-hairline-dark py-5">
             <div className="rounded-lg border border-hairline-dark bg-canvas-dark p-3">
-              <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-md bg-[#3A3A1F] text-primary"><ExportIcon className="size-4" /></span><div><h2 className="text-[13px] font-semibold leading-5 text-white">Visual Pack</h2><p className="mt-1 text-[12px] leading-[1.45] text-muted">5 responsive artboards from this composition.</p></div></div>
-              <button className="primary-button mt-3 h-10 w-full" onClick={() => setPackOpen(true)}>Open Output Pack</button>
+              <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-md bg-[#3A3A1F] text-primary"><ExportIcon className="size-4" /></span><div><h2 className="text-[13px] font-semibold leading-[1.55] text-white">{t.studio.visualPack}</h2><p className="kr-body mt-1 text-[12px] leading-[1.55] text-muted">{t.studio.packBody}</p></div></div>
+              <button className="primary-button mt-3 h-10 w-full" onClick={() => setPackOpen(true)}>{t.studio.openPack}</button>
             </div>
           </section>
         </aside>
@@ -174,14 +176,14 @@ export function StudioPage({ onGoHome }: Props) {
           onDrop={(event) => { event.preventDefault(); setDragging(false); loadFile(event.dataTransfer.files?.[0]); }}
         >
           <div className="absolute left-4 right-4 top-4 z-10 flex items-center justify-between">
-            <span className="rounded-md border border-hairline-dark bg-surface-card px-3 py-2 text-[12px] font-medium text-muted-strong">Website Hero <span className="ml-2 text-muted">1440 × 900</span></span>
-            <span className="rounded-md border border-hairline-dark bg-surface-card px-3 py-2 font-number text-[12px] text-muted">Master preview</span>
+            <span className="rounded-md border border-hairline-dark bg-surface-card px-3 py-2 text-[12px] font-medium leading-[1.5] text-muted-strong">{t.studio.websiteHero} <span className="ml-2 text-muted">1440 × 900</span></span>
+            <span className="rounded-md border border-hairline-dark bg-surface-card px-3 py-2 font-number text-[12px] leading-[1.5] text-muted">{t.studio.masterPreview}</span>
           </div>
           <div className="grid h-full min-h-[620px] place-items-center px-6 pb-12 pt-20 lg:min-h-0">
             <div className="canvas-frame w-full max-w-[1040px]"><canvas ref={canvasRef} className="block h-auto w-full bg-white" /></div>
           </div>
-          {!source && <button onClick={() => fileInput.current?.click()} className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2 rounded-md border border-hairline-dark bg-surface-card px-4 py-2.5 text-[13px] font-semibold text-white hover:border-primary"><UploadIcon className="mr-2 inline size-4 text-primary" />Replace preview with your screenshot</button>}
-          {isDragging && <div className="absolute inset-4 z-40 grid place-items-center rounded-xl border-2 border-dashed border-primary bg-canvas-dark/90"><div className="text-center"><UploadIcon className="mx-auto size-8 text-primary" /><b className="mt-3 block text-[16px] text-white">Drop screenshot here</b><span className="mt-1 block text-[13px] text-muted-strong">It stays in this browser session.</span></div></div>}
+          {!source && <button onClick={() => fileInput.current?.click()} className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2 rounded-md border border-hairline-dark bg-surface-card px-4 py-2.5 text-[13px] font-semibold leading-[1.5] text-white hover:border-primary"><UploadIcon className="mr-2 inline size-4 text-primary" />{t.studio.replacePreview}</button>}
+          {isDragging && <div className="absolute inset-4 z-40 grid place-items-center rounded-xl border-2 border-dashed border-primary bg-canvas-dark/90"><div className="text-center"><UploadIcon className="mx-auto size-8 text-primary" /><b className="kr-heading mt-3 block text-[16px] leading-[1.55] text-white">{t.studio.dropHere}</b><span className="kr-body mt-1 block text-[13px] leading-[1.6] text-muted-strong">{t.studio.staysLocal}</span></div></div>}
           {advanced && <AdvancedPanel settings={settings} setSettings={setSettings} onClose={() => setAdvanced(false)} />}
         </main>
       </div>
@@ -194,41 +196,43 @@ export function StudioPage({ onGoHome }: Props) {
 function MobileStudioFallback({ onGoHome }: { onGoHome: () => void }) {
   return (
     <main className="flex min-h-screen flex-col bg-canvas-dark p-5 text-body lg:hidden">
-      <header className="flex h-12 items-center justify-between"><button onClick={onGoHome} className="flex items-center gap-2"><Mark className="size-8" /><span className="text-[15px] font-semibold text-white">Launchset</span></button><span className="rounded-md border border-hairline-dark bg-surface-card px-2.5 py-1.5 text-[12px] font-medium text-muted-strong">Desktop studio</span></header>
+      <header className="flex h-12 items-center justify-between"><button onClick={onGoHome} className="flex items-center gap-2" aria-label={t.studio.homeAria}><Mark className="size-8" /><span className="text-[15px] font-semibold text-white">{t.brand.name}</span></button><span className="rounded-md border border-hairline-dark bg-surface-card px-2.5 py-1.5 text-[12px] font-medium leading-[1.5] text-muted-strong">{t.studio.mobileBadge}</span></header>
       <section className="my-auto py-14">
-        <p className="section-kicker">FIVE OUTPUTS · ONE SOURCE</p>
-        <h1 className="mt-3 max-w-[360px] text-[38px] font-bold leading-[1.08] tracking-[-0.03em] text-white">Build the pack on a wider canvas.</h1>
-        <p className="mt-5 max-w-[380px] text-[15px] leading-[1.65] text-muted-strong">Launchset v1.3 keeps precision editing desktop-first, then reflows the composition into Hero, OG, Product Hunt, Square and Story formats.</p>
+        <p className="section-kicker">{t.studio.mobileKicker}</p>
+        <h1 className="kr-heading mt-3 max-w-[380px] text-[36px] font-bold leading-[1.18] tracking-[-0.012em] text-white">{t.studio.mobileTitle}</h1>
+        <p className="kr-body mt-5 max-w-[390px] text-[15px] leading-[1.7] text-muted-strong">{t.studio.mobileBody}</p>
         <div className="mt-7 grid grid-cols-2 gap-2 rounded-xl border border-hairline-dark bg-surface-card p-3">
-          {['Hero 1440×900', 'OG 1200×630', 'Square 1080×1080', 'Story 1080×1920'].map((item, index) => <div key={item} className={`grid min-h-24 place-items-center rounded-lg border border-hairline-dark ${index === 1 ? 'bg-[#181A20]' : index === 2 ? 'bg-primary text-ink' : 'bg-[#FAFAFA] text-ink'}`}><span className="px-2 text-center text-[12px] font-semibold">{item}</span></div>)}
+          {t.studio.mobileFormats.map((item, index) => <div key={item} className={`grid min-h-24 place-items-center rounded-lg border border-hairline-dark ${index === 1 ? 'bg-[#181A20]' : index === 2 ? 'bg-primary text-ink' : 'bg-[#FAFAFA] text-ink'}`}><span className="px-2 text-center text-[12px] font-semibold leading-[1.5]">{item}</span></div>)}
         </div>
-        <button onClick={onGoHome} className="secondary-button mt-6 h-11 w-full">Back to overview</button>
+        <button onClick={onGoHome} className="secondary-button mt-6 h-11 w-full">{t.studio.backOverview}</button>
       </section>
     </main>
   );
 }
 
 function RailButton({ icon, label, active = false, onClick }: { icon: ReactNode; label: string; active?: boolean; onClick?: () => void }) {
-  return <button onClick={onClick} className={`flex h-14 w-[52px] flex-col items-center justify-center gap-1 rounded-lg text-[12px] leading-[1.35] font-medium ${active ? 'bg-[#3A3A1F] text-primary' : 'text-muted hover:bg-surface-card hover:text-body'}`}>{icon}<span>{label}</span></button>;
+  return <button onClick={onClick} className={`flex h-14 w-[52px] flex-col items-center justify-center gap-1 rounded-lg text-[12px] font-medium leading-[1.45] ${active ? 'bg-[#3A3A1F] text-primary' : 'text-muted hover:bg-surface-card hover:text-body'}`}>{icon}<span>{label}</span></button>;
 }
 
 function Section({ title, meta, children }: { title: string; meta?: string; children: ReactNode }) {
-  return <section className="border-t border-hairline-dark py-5"><div className="mb-3 flex items-center justify-between"><h2 className="m-0 text-[14px] font-semibold leading-5 text-white">{title}</h2>{meta && <span className="max-w-[150px] truncate text-[12px] leading-[1.4] text-muted">{meta}</span>}</div>{children}</section>;
+  return <section className="border-t border-hairline-dark py-5"><div className="mb-3 flex items-center justify-between"><h2 className="m-0 text-[14px] font-semibold leading-[1.55] text-white">{title}</h2>{meta && <span className="max-w-[150px] truncate text-[12px] leading-[1.5] text-muted">{meta}</span>}</div>{children}</section>;
 }
 
 function DirectionButton({ item, selected, onClick }: { item: { id: DirectionId; name: string; description: string }; selected: boolean; onClick: () => void }) {
   const swatches = { minimal: 'bg-[#FAFAFA]', editorial: 'bg-primary', signal: 'bg-canvas-dark', depth: 'bg-[#181A20]' };
-  return <button onClick={onClick} className={`grid w-full grid-cols-[40px_1fr_20px] items-center gap-3 rounded-lg border p-2.5 text-left ${selected ? 'border-primary bg-[#3A3A1F]' : 'border-hairline-dark bg-canvas-dark hover:border-muted'}`}><span className={`h-9 rounded-md border border-hairline-dark ${swatches[item.id]}`} /><span><b className={`block text-[13px] font-semibold leading-5 ${selected ? 'text-primary' : 'text-white'}`}>{item.name}</b><small className="block text-[12px] leading-[1.4] text-muted">{item.description}</small></span>{selected ? <CheckIcon className="size-4 text-primary" /> : null}</button>;
+  return <button onClick={onClick} className={`grid w-full grid-cols-[40px_1fr_20px] items-center gap-3 rounded-lg border p-2.5 text-left ${selected ? 'border-primary bg-[#3A3A1F]' : 'border-hairline-dark bg-canvas-dark hover:border-muted'}`}><span className={`h-9 rounded-md border border-hairline-dark ${swatches[item.id]}`} /><span><b className={`block text-[13px] font-semibold leading-[1.55] ${selected ? 'text-primary' : 'text-white'}`}>{item.name}</b><small className="kr-body block text-[12px] leading-[1.5] text-muted">{item.description}</small></span>{selected ? <CheckIcon className="size-4 text-primary" /> : null}</button>;
 }
 
 function Range({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
-  return <section className="border-t border-hairline-dark py-5"><div className="mb-3 flex justify-between"><label className="text-[14px] font-semibold leading-5 text-white">{label}</label><span className="font-number text-[12px] text-muted">{value}</span></div><input aria-label={label} className="range-control w-full" type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></section>;
+  return <section className="border-t border-hairline-dark py-5"><div className="mb-3 flex justify-between"><label className="text-[14px] font-semibold leading-[1.55] text-white">{label}</label><span className="font-number text-[12px] leading-[1.5] text-muted">{value}</span></div><input aria-label={label} className="range-control w-full" type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></section>;
 }
 
 function AdvancedPanel({ settings, setSettings, onClose }: { settings: CompositionSettings; setSettings: Dispatch<SetStateAction<CompositionSettings>>; onClose: () => void }) {
-  return <aside className="panel-slide absolute bottom-0 right-0 top-0 z-30 w-[320px] border-l border-hairline-dark bg-surface-card p-5"><div className="mb-5 flex items-start justify-between"><div><p className="section-kicker">ADVANCED</p><h2 className="mt-1 text-[20px] font-semibold text-white">Precision</h2></div><button onClick={onClose} className="grid size-9 place-items-center rounded-md border border-hairline-dark text-[18px] text-muted hover:text-white" aria-label="Close advanced panel">×</button></div><p className="text-[13px] leading-[1.55] text-muted-strong">Precision stays narrow in v1.3. Output ratios are responsive rules, not five separate manual layouts.</p><div className="mt-6 space-y-3"><ValueRow label="Master" value="1440 × 900" /><ValueRow label="Outputs" value="5 formats" /><ValueRow label="Direction" value={settings.direction} /><ValueRow label="Renderer" value="Canvas 2D" /><ValueRow label="Source" value="Browser local" /></div><button onClick={() => setSettings(DEFAULT)} className="secondary-button mt-7 h-10 w-full">Reset composition</button></aside>;
+  const directionName = directionMeta.find((item) => item.id === settings.direction)?.name ?? settings.direction;
+  return <aside className="panel-slide absolute bottom-0 right-0 top-0 z-30 w-[320px] border-l border-hairline-dark bg-surface-card p-5"><div className="mb-5 flex items-start justify-between"><div><p className="section-kicker">{t.studio.advancedKicker}</p><h2 className="kr-heading mt-1 text-[20px] font-semibold leading-[1.45] tracking-[-0.008em] text-white">{t.studio.precision}</h2></div><button onClick={onClose} className="grid size-9 place-items-center rounded-md border border-hairline-dark text-[18px] text-muted hover:text-white" aria-label={t.studio.closeAdvancedAria}>×</button></div><p className="kr-body text-[13px] leading-[1.65] text-muted-strong">{t.studio.precisionBody}</p><div className="mt-6 space-y-3"><ValueRow label={t.studio.master} value="1440 × 900" /><ValueRow label={t.studio.outputs} value={t.studio.outputsValue} /><ValueRow label={t.studio.directionValue} value={directionName} /><ValueRow label={t.studio.renderer} value="Canvas 2D" /><ValueRow label={t.studio.sourceValue} value={t.studio.browserLocal} /></div><button onClick={() => setSettings(DEFAULT)} className="secondary-button mt-7 h-10 w-full">{t.studio.reset}</button></aside>;
 }
 
 function ValueRow({ label, value }: { label: string; value: string }) {
-  return <div className="flex items-center justify-between border-b border-hairline-dark py-3 text-[13px]"><span className="text-muted">{label}</span><span className="font-medium text-body">{value}</span></div>;
+  return <div className="flex items-center justify-between border-b border-hairline-dark py-3 text-[13px] leading-[1.55]"><span className="text-muted">{label}</span><span className="font-medium text-body">{value}</span></div>;
 }
+
