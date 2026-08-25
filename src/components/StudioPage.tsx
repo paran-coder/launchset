@@ -9,7 +9,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { t } from '../i18n';
-import { directionMeta, directionPresets, exportPng, renderComposition } from '../lib/render';
+import { directionMeta, directionPresets, downloadBlob, outputPresets, renderComposition, renderPresetBlob } from '../lib/render';
 import type { CompositionSettings, DirectionId, SourceImage } from '../types';
 import { CheckIcon, ExportIcon, GlobeIcon, ImageIcon, SparkIcon, TuneIcon, UploadIcon } from './Icons';
 import { Mark } from './Mark';
@@ -51,13 +51,26 @@ export function StudioPage({ onGoHome }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const rerender = useCallback(() => {
-    if (canvasRef.current) renderComposition(canvasRef.current, settings, source);
+    if (!canvasRef.current) return;
+    const previewPixelRatio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    renderComposition(canvasRef.current, settings, source, undefined, previewPixelRatio);
   }, [settings, source]);
 
   useEffect(() => rerender(), [rerender]);
+  useEffect(() => {
+    const onResize = () => rerender();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [rerender]);
   useEffect(() => () => { if (source) URL.revokeObjectURL(source.url); }, [source]);
 
-  const setSourceFromBlob = useCallback((blob: Blob, name: string, origin: 'file' | 'url', sourceUrl?: string) => new Promise<void>((resolve, reject) => {
+  const setSourceFromBlob = useCallback((
+    blob: Blob,
+    name: string,
+    origin: 'file' | 'url',
+    sourceUrl?: string,
+    captureMeta?: { scale?: number; viewportWidth?: number; viewportHeight?: number },
+  ) => new Promise<void>((resolve, reject) => {
     const objectUrl = URL.createObjectURL(blob);
     const image = new Image();
     image.onload = () => {
@@ -71,6 +84,9 @@ export function StudioPage({ onGoHome }: Props) {
           element: image,
           width: image.naturalWidth,
           height: image.naturalHeight,
+          captureScale: captureMeta?.scale,
+          captureViewportWidth: captureMeta?.viewportWidth,
+          captureViewportHeight: captureMeta?.viewportHeight,
         };
       });
       resolve();
@@ -129,7 +145,17 @@ export function StudioPage({ onGoHome }: Props) {
       }
       const normalizedUrl = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(value) ? value : `https://${value}`;
       const host = new URL(normalizedUrl).hostname.replace(/^www\./, '') || 'website';
-      await setSourceFromBlob(blob, `${host}-${captureViewport}.png`, 'url', normalizedUrl);
+      const captureScale = Number(response.headers.get('x-launchset-capture-scale') || 1);
+      const viewportWidth = Number(response.headers.get('x-launchset-capture-viewport-width') || 0) || undefined;
+      const viewportHeight = Number(response.headers.get('x-launchset-capture-viewport-height') || 0) || undefined;
+      const extension = blob.type.includes('webp') ? 'webp' : blob.type.includes('jpeg') ? 'jpg' : 'png';
+      await setSourceFromBlob(
+        blob,
+        `${host}-${captureViewport}.${extension}`,
+        'url',
+        normalizedUrl,
+        { scale: captureScale, viewportWidth, viewportHeight },
+      );
       setCaptureUrl(normalizedUrl);
       setSourceMode('url');
     } catch (captureFailure) {
@@ -141,8 +167,11 @@ export function StudioPage({ onGoHome }: Props) {
 
   const applyDirection = (id: DirectionId) => setSettings((previous) => ({ ...previous, ...directionPresets[id], direction: id }));
   const doSingleExport = useCallback(async () => {
-    if (canvasRef.current) await exportPng(canvasRef.current, `launchset-${settings.direction}-website-hero.png`);
-  }, [settings.direction]);
+    if (!source) return;
+    const hero = outputPresets[0];
+    const blob = await renderPresetBlob(hero, settings, source);
+    downloadBlob(blob, `launchset-${settings.direction}-website-hero.png`);
+  }, [settings, source]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -162,7 +191,14 @@ export function StudioPage({ onGoHome }: Props) {
 
   const sourceMeta = useMemo(() => {
     if (sourceMode === 'url' && source?.origin !== 'url') return t.studio.urlAwaitingCapture;
-    return source ? `${source.width} × ${source.height}${source.origin === 'url' ? ' · URL' : ''}` : t.studio.noSource;
+    if (!source) return t.studio.noSource;
+    if (source.origin === 'url') {
+      const viewportWidth = source.captureViewportWidth ?? Math.round(source.width / (source.captureScale || 1));
+      const viewportHeight = source.captureViewportHeight ?? Math.round(source.height / (source.captureScale || 1));
+      const scaleLabel = (source.captureScale || 1) > 1 ? ` ${(source.captureScale || 1).toFixed(0)}×` : '';
+      return `${viewportWidth} × ${viewportHeight} · URL${scaleLabel}`;
+    }
+    return `${source.width} × ${source.height}`;
   }, [source, sourceMode]);
   const sourceStatus = sourceMode === 'url'
     ? captureState === 'capturing'

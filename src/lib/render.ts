@@ -49,13 +49,20 @@ export function renderComposition(
   settings: CompositionSettings,
   source: SourceImage | null,
   artboard: Pick<OutputPreset, 'width' | 'height'> = ARTBOARD,
+  pixelRatio = 1,
 ) {
+  const safePixelRatio = Math.max(1, Math.min(2, Number.isFinite(pixelRatio) ? pixelRatio : 1));
+  const { width, height } = artboard;
+  canvas.width = Math.round(width * safePixelRatio);
+  canvas.height = Math.round(height * safePixelRatio);
+
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  const { width, height } = artboard;
-  canvas.width = width;
-  canvas.height = height;
+  ctx.setTransform(safePixelRatio, 0, 0, safePixelRatio, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
   const layout = getLayout(width, height, settings.direction);
 
   ctx.clearRect(0, 0, width, height);

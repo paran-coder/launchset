@@ -18,6 +18,9 @@ export type SourceImage = {
   element: HTMLImageElement;
   width: number;
   height: number;
+  captureScale?: number;
+  captureViewportWidth?: number;
+  captureViewportHeight?: number;
 };
 
 export type OutputPresetId = 'hero' | 'og' | 'productHunt' | 'square' | 'story';

@@ -1,4 +1,4 @@
-# Launchset v1.4.3 — Checklist
+# Launchset v1.4.4 — Checklist
 
 ## 개발 지침 준수 Gate
 - [x] 실행 전 계획 설명
@@ -7,67 +7,69 @@
 - [x] 코드 작업 전 checklist.md 생성
 - [x] 코드 작업 전 README.md 생성
 - [x] 코드 작업 전 User manual.md 생성
-- [x] SemVer `v1.4.3` 확정
+- [x] SemVer `v1.4.4` 확정
 - [x] 단일 프로젝트 루트 규칙 확인
 - [x] GitHub → Vercel 배포 전제 확인
-- [x] v1.5.0 진입 전 Capture Production Gate 고정
+- [x] 기능 추가 없는 quality patch 범위 확인
 
 ## Runtime Version Consistency Gate
 - [x] package.json engines.node = 24.x
 - [x] .nvmrc = 24
 - [x] GitHub Actions Node = 24
-- [x] 저장소 내 Node 22.x 잔존 0건
+- [x] Node 22.x 잔존 0건
 
-## Phase 1 — Capture API Hotfix
-- [x] v1.4.2 소스 통합
-- [x] `/function` 기반 custom Puppeteer 제거
-- [x] `/screenshot` REST API 적용
-- [x] Desktop 1440×900 / Mobile 390×844 유지
-- [x] timeout / max response / rate limit 유지
-- [x] upstream 오류 코드 분류
-- [x] 보안 검토
+## Phase 1 — Source Integration
+- [x] v1.4.3 소스 통합
+- [x] 버전 문자열 1.4.4 정렬
+- [x] 기능/UI 회귀 없는지 확인
 - [x] 자체 점검 및 10점 평가
 
-## Phase 2 — Studio Capture UX
-- [x] 인증 실패 메시지
-- [x] Browserless 사용량 제한 메시지
-- [x] 대상 사이트 / 캡처 실패 메시지
-- [x] Browserless 서버 오류 메시지
-- [x] timeout / network 오류 메시지
-- [x] URL 탭 source 상태 정확화
-- [x] 접근성 상태 메시지 유지
+## Phase 2 — HiDPI Capture
+- [x] Desktop 2× capture
+- [x] Mobile 2× capture
+- [x] CSS viewport는 기존 크기 유지
+- [x] capture result size guard 재검토
+- [x] Browserless 오류 처리 유지
 - [x] 자체 점검 및 10점 평가
 
-## Phase 3 — Regression Verification
-- [x] `api/capture.ts` TypeScript strict compile
+## Phase 3 — HiDPI Preview & Rendering
+- [x] imageSmoothingEnabled = true
+- [x] imageSmoothingQuality = high
+- [x] Studio Preview DPR-aware backing store
+- [x] Export output logical dimensions 유지
+- [x] resize 시 preview 재렌더 안정성
+- [x] reduced motion/accessibility 영향 없음
+- [x] 자체 점검 및 10점 평가
+
+## Phase 4 — Regression Verification
+- [x] TypeScript strict compile
 - [x] TS/TSX syntax 검사
 - [x] 상대 import 검사
 - [x] Runtime consistency 검사
-- [x] API mock: 200 PNG
-- [x] API mock: 401/403
-- [x] API mock: 429
-- [x] API mock: 4xx capture failure
-- [x] API mock: 5xx
-- [x] API mock: timeout
+- [x] Capture request 2× payload 검사
+- [x] renderer output dimensions 검사
 - [x] ZIP writer regression
+- [x] 기존 URL Capture error mapping 회귀 검사
 - [x] 자체 점검 및 10점 평가
 
-## Phase 4 — Release
-- [x] README / User manual 최종 갱신
+## Phase 5 — Release
 - [x] CHANGELOG 갱신
-- [x] docs 검증 문서 생성
+- [x] README / User manual 최종 갱신
+- [x] QA 문서 생성
 - [x] release/github 생성
 - [x] GitHub ZIP 생성
 - [x] Full ZIP 생성
 - [x] SHA256SUMS 생성
-- [x] ZIP integrity 검사
-- [x] 최종 QA 및 자체평가
+- [x] unzip -t PASS
+- [x] 최종 자체평가
 
-## Production Gate — 사용자 Vercel
-- [ ] `https://example.com` Desktop Capture 성공
-- [ ] `https://example.com` Mobile Capture 성공
-- [ ] `wavesstay.sixshop.site` Capture 결과 확인
-- [ ] Visual Pack 생성
-- [ ] 개별 PNG 다운로드
-- [ ] ZIP 다운로드
-- [ ] PASS 후 v1.5.0 Brand System 시작
+## Production Gate
+- [ ] example.com Desktop
+- [ ] example.com Mobile
+- [ ] wavesstay.sixshop.site Desktop
+- [ ] wavesstay.sixshop.site Mobile
+- [ ] Studio Preview 선명도 비교
+- [ ] Hero PNG
+- [ ] Visual Pack
+- [ ] ZIP
+- [ ] PASS 후 v1.5.0 시작

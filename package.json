@@ -1,7 +1,7 @@
 {
   "name": "launchset-studio",
   "private": true,
-  "version": "1.4.3",
+  "version": "1.4.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "check:runtime": "node scripts/check-runtime.mjs",
-    "test:capture": "node scripts/test-capture.mjs"
+    "test:capture": "node scripts/test-capture.mjs",
+    "test:hidpi": "node scripts/test-hidpi.mjs"
   },
   "dependencies": {
     "react": "19.1.1",

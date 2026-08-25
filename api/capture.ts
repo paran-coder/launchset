@@ -20,6 +20,7 @@ type CaptureErrorCode =
   | 'CAPTURE_TARGET_SERVER_ERROR'
   | 'CAPTURE_PROVIDER_ERROR'
   | 'CAPTURE_INVALID_RESPONSE'
+  | 'CAPTURE_IMAGE_TOO_LARGE'
   | 'CAPTURE_TIMEOUT'
   | 'CAPTURE_NETWORK_ERROR';
 
@@ -28,7 +29,11 @@ const VIEWPORTS: Record<CaptureViewport, { width: number; height: number; mobile
   mobile: { width: 390, height: 844, mobile: true, hasTouch: true },
 };
 
-const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+const CAPTURE_SCALE = 2;
+const MAX_RESPONSE_BYTES = 4_000_000;
+const MAX_UPSTREAM_BYTES = 16 * 1024 * 1024;
+const PRIMARY_WEBP_QUALITY = 92;
+const FALLBACK_WEBP_QUALITY = 82;
 const UPSTREAM_TIMEOUT_MS = 26_000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 6;
@@ -158,7 +163,7 @@ function consumeRateLimit(request: Request) {
   return { allowed: true, retryAfter: 0 };
 }
 
-function browserlessEndpoint(token: string, viewport: CaptureViewport) {
+function browserlessEndpoint(token: string) {
   const rawBaseUrl = (process.env.BROWSERLESS_API_URL || 'https://production-sfo.browserless.io').trim().replace(/\/$/, '');
   const baseUrl = new URL(rawBaseUrl);
   if (baseUrl.protocol !== 'https:' && baseUrl.hostname !== 'localhost') {
@@ -173,14 +178,14 @@ function browserlessEndpoint(token: string, viewport: CaptureViewport) {
   return `${baseUrl.toString().replace(/\/$/, '')}/screenshot?${params.toString()}`;
 }
 
-function browserlessRequestBody(targetUrl: string, viewport: CaptureViewport) {
+function browserlessRequestBody(targetUrl: string, viewport: CaptureViewport, quality: number) {
   const spec = VIEWPORTS[viewport];
   return {
     url: targetUrl,
     viewport: {
       width: spec.width,
       height: spec.height,
-      deviceScaleFactor: 1,
+      deviceScaleFactor: CAPTURE_SCALE,
       isMobile: spec.mobile,
       hasTouch: spec.hasTouch,
     },
@@ -191,7 +196,8 @@ function browserlessRequestBody(targetUrl: string, viewport: CaptureViewport) {
     waitForTimeout: 800,
     bestAttempt: true,
     options: {
-      type: 'png',
+      type: 'webp',
+      quality,
       fullPage: false,
       captureBeyondViewport: false,
     },
@@ -244,6 +250,76 @@ function mapTargetFailure(targetStatus: number) {
   return null;
 }
 
+type ScreenshotResult =
+  | { ok: true; buffer: ArrayBuffer; contentType: string; targetStatus: number; quality: number }
+  | { ok: false; response: Response };
+
+async function requestScreenshot(
+  endpoint: string,
+  targetUrl: string,
+  viewport: CaptureViewport,
+  quality: number,
+): Promise<ScreenshotResult> {
+  const upstream = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+    },
+    body: JSON.stringify(browserlessRequestBody(targetUrl, viewport, quality)),
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+  });
+
+  if (!upstream.ok) {
+    const detail = await readUpstreamDetail(upstream);
+    return { ok: false, response: mapBrowserlessFailure(upstream.status, detail) };
+  }
+
+  const targetStatus = Number(upstream.headers.get('x-response-code') || 0);
+  if (Number.isFinite(targetStatus) && targetStatus >= 400) {
+    const targetFailure = mapTargetFailure(targetStatus);
+    if (targetFailure) return { ok: false, response: targetFailure };
+  }
+
+  const contentType = upstream.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('image/')) {
+    return {
+      ok: false,
+      response: captureError(
+        '캡처 서비스가 이미지 대신 예상하지 못한 응답을 반환했습니다.',
+        'CAPTURE_INVALID_RESPONSE',
+        502,
+      ),
+    };
+  }
+
+  const contentLength = Number(upstream.headers.get('content-length') || 0);
+  if (contentLength > MAX_UPSTREAM_BYTES) {
+    return {
+      ok: false,
+      response: captureError(
+        '캡처 이미지가 지나치게 큽니다. 다른 화면 크기로 다시 시도해 주세요.',
+        'CAPTURE_IMAGE_TOO_LARGE',
+        413,
+      ),
+    };
+  }
+
+  const buffer = await upstream.arrayBuffer();
+  if (buffer.byteLength > MAX_UPSTREAM_BYTES) {
+    return {
+      ok: false,
+      response: captureError(
+        '캡처 이미지가 지나치게 큽니다. 다른 화면 크기로 다시 시도해 주세요.',
+        'CAPTURE_IMAGE_TOO_LARGE',
+        413,
+      ),
+    };
+  }
+
+  return { ok: true, buffer, contentType, targetStatus, quality };
+}
+
 export default {
   async fetch(request: Request) {
     if (request.method !== 'POST') return json({ error: 'POST 요청만 지원합니다.' }, 405);
@@ -281,61 +357,43 @@ export default {
 
     let endpoint: string;
     try {
-      endpoint = browserlessEndpoint(token, viewport);
+      endpoint = browserlessEndpoint(token);
     } catch {
       return captureError('Browserless API URL 설정을 확인해 주세요.', 'CAPTURE_PROVIDER_ERROR', 503);
     }
 
     try {
-      const upstream = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
-        body: JSON.stringify(browserlessRequestBody(targetUrl, viewport)),
-        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
-      });
+      let capture = await requestScreenshot(endpoint, targetUrl, viewport, PRIMARY_WEBP_QUALITY);
+      if (!capture.ok) return capture.response;
 
-      if (!upstream.ok) {
-        const detail = await readUpstreamDetail(upstream);
-        return mapBrowserlessFailure(upstream.status, detail);
+      if (capture.buffer.byteLength > MAX_RESPONSE_BYTES) {
+        capture = await requestScreenshot(endpoint, targetUrl, viewport, FALLBACK_WEBP_QUALITY);
+        if (!capture.ok) return capture.response;
       }
 
-      const targetStatus = Number(upstream.headers.get('x-response-code') || 0);
-      if (Number.isFinite(targetStatus) && targetStatus >= 400) {
-        const targetFailure = mapTargetFailure(targetStatus);
-        if (targetFailure) return targetFailure;
-      }
-
-      const contentType = upstream.headers.get('content-type') || '';
-      const contentLength = Number(upstream.headers.get('content-length') || 0);
-      if (contentLength > MAX_IMAGE_BYTES) {
-        return json({ error: '캡처 이미지가 너무 큽니다.' }, 413);
-      }
-      if (!contentType.toLowerCase().includes('image/')) {
+      if (capture.buffer.byteLength > MAX_RESPONSE_BYTES) {
         return captureError(
-          '캡처 서비스가 이미지 대신 예상하지 못한 응답을 반환했습니다.',
-          'CAPTURE_INVALID_RESPONSE',
-          502,
+          '고해상도 캡처 결과가 전송 한도를 초과했습니다. 더 단순한 화면 또는 모바일 캡처를 시도해 주세요.',
+          'CAPTURE_IMAGE_TOO_LARGE',
+          413,
         );
       }
 
-      const buffer = await upstream.arrayBuffer();
-      if (buffer.byteLength > MAX_IMAGE_BYTES) {
-        return json({ error: '캡처 이미지가 너무 큽니다.' }, 413);
-      }
-
-      return new Response(buffer, {
+      const spec = VIEWPORTS[viewport];
+      return new Response(capture.buffer, {
         status: 200,
         headers: {
-          'Content-Type': contentType.toLowerCase().includes('image/png') ? 'image/png' : contentType,
-          'Content-Length': String(buffer.byteLength),
+          'Content-Type': capture.contentType.toLowerCase().includes('image/webp') ? 'image/webp' : capture.contentType,
+          'Content-Length': String(capture.buffer.byteLength),
           'Cache-Control': 'no-store',
           'X-Content-Type-Options': 'nosniff',
           'X-Launchset-Capture-Viewport': viewport,
+          'X-Launchset-Capture-Viewport-Width': String(spec.width),
+          'X-Launchset-Capture-Viewport-Height': String(spec.height),
+          'X-Launchset-Capture-Scale': String(CAPTURE_SCALE),
+          'X-Launchset-Capture-Quality': String(capture.quality),
           'X-Launchset-Capture-Provider': 'browserless-screenshot',
-          ...(targetStatus > 0 ? { 'X-Launchset-Target-Status': String(targetStatus) } : {}),
+          ...(capture.targetStatus > 0 ? { 'X-Launchset-Target-Status': String(capture.targetStatus) } : {}),
         },
       });
     } catch (error) {
