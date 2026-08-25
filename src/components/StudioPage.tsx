@@ -28,6 +28,13 @@ const backgrounds = ['#FAFAFA', '#FCD535', '#0B0E11', '#EAECEF', '#1E2329'];
 
 type Props = { onGoHome: () => void };
 
+type CaptureErrorState = { message: string; code?: string } | null;
+
+function captureErrorLabel(code?: string) {
+  if (!code) return t.studio.captureErrorLabels.generic;
+  return t.studio.captureErrorLabels[code as keyof typeof t.studio.captureErrorLabels] ?? t.studio.captureErrorLabels.generic;
+}
+
 export function StudioPage({ onGoHome }: Props) {
   const [settings, setSettings] = useState(DEFAULT);
   const [source, setSource] = useState<SourceImage | null>(null);
@@ -36,7 +43,7 @@ export function StudioPage({ onGoHome }: Props) {
   const [captureUrl, setCaptureUrl] = useState('');
   const [captureViewport, setCaptureViewport] = useState<'desktop' | 'mobile'>('desktop');
   const [captureState, setCaptureState] = useState<'idle' | 'capturing'>('idle');
-  const [captureError, setCaptureError] = useState('');
+  const [captureError, setCaptureError] = useState<CaptureErrorState>(null);
   const [isDragging, setDragging] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [packOpen, setPackOpen] = useState(false);
@@ -78,7 +85,7 @@ export function StudioPage({ onGoHome }: Props) {
   const loadFile = useCallback(async (file?: File) => {
     if (!file) return;
     setError('');
-    setCaptureError('');
+    setCaptureError(null);
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       setError(t.studio.invalidFile);
       return;
@@ -98,11 +105,11 @@ export function StudioPage({ onGoHome }: Props) {
   const captureFromUrl = useCallback(async () => {
     const value = captureUrl.trim();
     if (!value) {
-      setCaptureError(t.studio.captureEmptyUrl);
+      setCaptureError({ message: t.studio.captureEmptyUrl });
       return;
     }
     setError('');
-    setCaptureError('');
+    setCaptureError(null);
     setCaptureState('capturing');
     try {
       const response = await fetch('/api/capture', {
@@ -111,18 +118,22 @@ export function StudioPage({ onGoHome }: Props) {
         body: JSON.stringify({ url: value, viewport: captureViewport }),
       });
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(payload.error || t.studio.captureFailed);
+        const payload = await response.json().catch(() => ({})) as { error?: string; code?: string };
+        setCaptureError({ message: payload.error || t.studio.captureFailed, code: payload.code });
+        return;
       }
       const blob = await response.blob();
-      if (!blob.type.startsWith('image/')) throw new Error(t.studio.captureInvalidImage);
+      if (!blob.type.startsWith('image/')) {
+        setCaptureError({ message: t.studio.captureInvalidImage, code: 'CAPTURE_INVALID_RESPONSE' });
+        return;
+      }
       const normalizedUrl = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(value) ? value : `https://${value}`;
       const host = new URL(normalizedUrl).hostname.replace(/^www\./, '') || 'website';
       await setSourceFromBlob(blob, `${host}-${captureViewport}.png`, 'url', normalizedUrl);
       setCaptureUrl(normalizedUrl);
       setSourceMode('url');
     } catch (captureFailure) {
-      setCaptureError(captureFailure instanceof Error ? captureFailure.message : t.studio.captureFailed);
+      setCaptureError({ message: captureFailure instanceof Error ? captureFailure.message : t.studio.captureFailed, code: 'CAPTURE_NETWORK_ERROR' });
     } finally {
       setCaptureState('idle');
     }
@@ -149,8 +160,21 @@ export function StudioPage({ onGoHome }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [packOpen]);
 
-  const sourceMeta = useMemo(() => source ? `${source.width} × ${source.height}${source.origin === 'url' ? ' · URL' : ''}` : t.studio.noSource, [source]);
-  const sourceStatus = !source ? t.studio.outputLocal : source.origin === 'url' ? t.studio.capturedServerSide : t.studio.renderedLocally;
+  const sourceMeta = useMemo(() => {
+    if (sourceMode === 'url' && source?.origin !== 'url') return t.studio.urlAwaitingCapture;
+    return source ? `${source.width} × ${source.height}${source.origin === 'url' ? ' · URL' : ''}` : t.studio.noSource;
+  }, [source, sourceMode]);
+  const sourceStatus = sourceMode === 'url'
+    ? captureState === 'capturing'
+      ? t.studio.urlCapturingStatus
+      : source?.origin === 'url'
+        ? t.studio.capturedServerSide
+        : captureError
+          ? t.studio.urlCaptureErrorStatus
+          : t.studio.urlCaptureReady
+    : source?.origin === 'file'
+      ? t.studio.renderedLocally
+      : t.studio.noSourceStatus;
   const currentDirection = directionMeta.find((item) => item.id === settings.direction)?.name ?? settings.direction;
 
   return (
@@ -194,7 +218,7 @@ export function StudioPage({ onGoHome }: Props) {
                   key={mode}
                   role="tab"
                   aria-selected={sourceMode === mode}
-                  onClick={() => { setSourceMode(mode); setError(''); setCaptureError(''); }}
+                  onClick={() => { setSourceMode(mode); setError(''); setCaptureError(null); }}
                   className={`h-9 rounded-md text-[13px] font-semibold ${sourceMode === mode ? 'bg-surface-elevated text-white' : 'text-muted hover:text-body'}`}
                 >
                   {t.studio.sourceModes[mode]}
@@ -221,7 +245,7 @@ export function StudioPage({ onGoHome }: Props) {
                       inputMode="url"
                       autoComplete="url"
                       value={captureUrl}
-                      onChange={(event) => setCaptureUrl(event.target.value)}
+                      onChange={(event) => { setCaptureUrl(event.target.value); if (captureError) setCaptureError(null); }}
                       onKeyDown={(event) => { if (event.key === 'Enter' && captureState !== 'capturing') void captureFromUrl(); }}
                       placeholder={t.studio.urlPlaceholder}
                       className="min-w-0 flex-1 border-0 bg-transparent text-[13px] leading-[1.55] text-white outline-none placeholder:text-muted"
@@ -234,7 +258,7 @@ export function StudioPage({ onGoHome }: Props) {
                     {(['desktop', 'mobile'] as const).map((viewport) => (
                       <button
                         key={viewport}
-                        onClick={() => setCaptureViewport(viewport)}
+                        onClick={() => { setCaptureViewport(viewport); if (captureError) setCaptureError(null); }}
                         className={`h-9 rounded-md border text-[12px] font-semibold ${captureViewport === viewport ? 'border-primary bg-[#3A3A1F] text-primary' : 'border-hairline-dark bg-canvas-dark text-muted-strong hover:border-muted'}`}
                       >
                         {t.studio.captureViewports[viewport]}
@@ -252,7 +276,12 @@ export function StudioPage({ onGoHome }: Props) {
                     <span className="truncate">{source.sourceUrl}</span>
                   </div>
                 )}
-                {captureError && <p role="alert" className="kr-body m-0 text-[12px] leading-[1.55] text-danger">{captureError}</p>}
+                {captureError && (
+                  <div role="alert" className="rounded-md border border-[#6E2A38] bg-[#2A151A] px-3 py-2">
+                    <p className="m-0 text-[12px] font-semibold leading-[1.5] text-danger">{captureErrorLabel(captureError.code)}</p>
+                    <p className="kr-body mt-1 mb-0 text-[12px] leading-[1.55] text-[#F2A5B2]">{captureError.message}</p>
+                  </div>
+                )}
               </div>
             )}
           </Section>

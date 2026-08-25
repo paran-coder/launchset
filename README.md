@@ -1,42 +1,44 @@
-# Launchset v1.4.2
+# Launchset v1.4.3
 
-Launchset v1.4.2는 Node.js 런타임을 **24.x**로 통일하는 배포 호환성 패치입니다.
+Launchset v1.4.3은 URL Capture Production 실패를 수정하는 Capture Hotfix입니다.
 
-## 이번 버전의 목적
-Vercel Project Settings의 Node 24.x와 저장소 설정을 일치시켜 경고와 런타임 불일치를 제거합니다.
+## 핵심 변경
+- Browserless `/function` 기반 custom Puppeteer 경로를 단순 스크린샷 용도에 맞는 `/screenshot` REST API로 변경
+- Capture 오류를 인증 / 사용량 제한 / 대상 사이트·캡처 실패 / Browserless 서버 / 네트워크·타임아웃으로 구분
+- URL source 상태 문구 정확화
+- v1.4.2의 Node.js 24.x, Vite 7.1.3, Tailwind CSS 4.3.3 구성 유지
 
-## 기능
-v1.4.1과 동일합니다.
-- 스크린샷 업로드
+## 기능 범위
+- 파일 업로드
 - URL Capture
 - Desktop / Mobile Capture
-- Canvas 렌더링
-- Direction preset
+- Canvas 편집
+- 4 Direction
 - 5종 Visual Pack
 - PNG / ZIP Export
 - 한국어 UI
 
 ## Runtime
-- Node.js: `24.x`
-- React: 19
-- Vite: 7.1.3
-- Tailwind CSS: 4.3.3
-- TypeScript: 5.8
+- Node.js 24.x
+- React 19
+- Vite 7.1.3
+- Tailwind CSS 4.3.3
+- TypeScript 5.8.3
 
-## 배포
-GitHub 저장소를 Vercel에 연결하는 구조를 전제로 합니다.
-Vercel Project Settings에서도 Node.js를 `24.x`로 유지합니다.
-
-## Version
-`1.4.2`
-
-## Runtime Consistency Gate
-
-```bash
-npm run check:runtime
-```
-
-이 명령은 `package.json`, `.nvmrc`, GitHub Actions의 Node major가 모두 24인지 검사합니다. Vercel Project Settings는 Node.js 24.x로 유지합니다.
+## URL Capture 환경변수
+- `BROWSERLESS_API_TOKEN` 필수
+- `BROWSERLESS_API_URL` 선택
 
 ## Production Verification
-GitHub Actions와 Vercel Preview에서 Node 24 기반 `typecheck`와 `build`를 통과한 뒤 실제 URL Capture를 검증합니다.
+이 버전은 Vercel Production에서 `https://example.com` Desktop Capture가 실제로 성공하기 전까지 Production Verified로 표시하지 않습니다.
+
+## Version
+`1.4.3`
+
+## v1.4.3 Verification Status
+- Capture API regression 14 checks: PASS
+- focused TypeScript strict compile: PASS
+- Runtime Version Consistency Gate: PASS
+- Vercel Production live Capture: PENDING
+
+Browserless의 현재 OpenAPI가 `/screenshot`을 preferred screenshot endpoint로 정의하므로 v1.4.3은 해당 경로를 사용합니다.
